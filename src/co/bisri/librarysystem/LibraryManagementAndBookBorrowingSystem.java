@@ -1,4 +1,4 @@
-package co.bisri.librarysystems;
+package co.bisri.librarysystem;
 
 import javax.swing.SwingUtilities;
 
