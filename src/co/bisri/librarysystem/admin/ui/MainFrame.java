@@ -52,7 +52,8 @@ public class MainFrame extends JFrame{
 		setForeground(SystemColor.activeCaptionText);
 		/* Frame Properties */
 		setTitle("Library Management Administrator");
-		setBounds(100, 100, 727, 482);
+		setBounds(100, 100, 770, 492);
+		setMinimumSize(new Dimension(770, 492));
 		/* END OF Frame Properties */
 		
 		/* jpnlContentPane - custom content pane for this frame */
