@@ -19,6 +19,7 @@ import javax.swing.border.EmptyBorder;
 import co.bisri.librarysystem.admin.ui.book.BooksManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcategory.BooksCategoryManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcopy.BookCopyManagementPanel;
+import co.bisri.librarysystem.admin.ui.borrow.BorrowManagementPanel;
 
 public class MainFrame extends JFrame{
 	/**
@@ -46,6 +47,10 @@ public class MainFrame extends JFrame{
 	 * Books Copy Management Panel of this module.
 	 */
 	private BookCopyManagementPanel bookCopyManagementPanel;
+	/**
+	 * Borrow Management Panel of this module.
+	 */
+	private BorrowManagementPanel borrowManagementPanel;
 	
 	
 	public MainFrame() {
@@ -235,6 +240,31 @@ public class MainFrame extends JFrame{
 		
 		/* jbtnBorrow*/
 		JButton jbtnBorrow = new JButton("Borrow");
+		jbtnBorrow.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// If the current shown panel is station management panel,
+				// do nothing.
+				if(jpnlCurrentShownPanel == borrowManagementPanel)
+					return;
+				
+				// Else, if the current shown panel is another,
+				// remove it from the content pane
+				else if(jpnlCurrentShownPanel != null) {
+					jpnlContentPane.remove(jpnlCurrentShownPanel);
+					revalidate();
+				}
+
+				// Refresh the table
+				//booksManagementPanel.refreshTable();
+				// Set current shown panel (pointer) to booksManagementPanel
+				jpnlCurrentShownPanel = borrowManagementPanel;
+				// Add booksManagementPanel to the content pane
+				jpnlContentPane.add(borrowManagementPanel);
+				// Redraw the frame
+				revalidate();
+			}
+		});
 	
 		jbtnBorrow.setMinimumSize(new Dimension(200, 35));
 		jbtnBorrow.setMaximumSize(new Dimension(32767, 35));
@@ -275,6 +305,10 @@ public class MainFrame extends JFrame{
 	
 	public void setBookCopyManagementPanel(BookCopyManagementPanel bookCopyManagementPanel) {
 		this.bookCopyManagementPanel = bookCopyManagementPanel;
+	}
+	
+	public void setBorrowManagementPanel(BorrowManagementPanel borrowManagementPanel) {
+		this.borrowManagementPanel = borrowManagementPanel;
 	}
 	
 }

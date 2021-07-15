@@ -1,4 +1,4 @@
-package co.bisri.librarysystem.admin.ui.bookcopy;
+package co.bisri.librarysystem.admin.ui.borrow;
 
 import java.awt.Color;
 import java.awt.Cursor;
@@ -24,7 +24,7 @@ import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
-public class BookCopyManagementPanel extends JPanel {
+public class BorrowManagementPanel extends JPanel {
 
 	/**
 	 * Default Serial Version UID (for serializability, not important, placed to
@@ -34,7 +34,7 @@ public class BookCopyManagementPanel extends JPanel {
 	/**
 	 * The main table of this panel.
 	 */
-	private JTable jtblBookCopy;
+	private JTable jtblBorrow;
 
 	/**
 	 * Add Form Dialog of this panel.
@@ -45,8 +45,8 @@ public class BookCopyManagementPanel extends JPanel {
 	/**
 	 * Construct the panel.
 	 */
-	public BookCopyManagementPanel() {
-		BookCopyManagementPanel thisPanel = this;
+	public BorrowManagementPanel() {
+		BorrowManagementPanel thisPanel = this;
 		// Set border to EmptyBorder for spacing
 		setBorder(new EmptyBorder(10, 10, 10, 10));
 		// Use BoxLayout to lay the internal 3 panels: Header, Table, Pagination Actions
@@ -62,7 +62,7 @@ public class BookCopyManagementPanel extends JPanel {
 		/* END OF jpnlHeader */
 
 		/* jlblHeader - Header label */
-		JLabel jlblHeader = new JLabel("Manage Book Copies");
+		JLabel jlblHeader = new JLabel("Manage Borrow");
 		jlblHeader.setAlignmentY(0.0f);
 		jlblHeader.setFont(new Font("Roboto Light", Font.BOLD, 24));
 		jpnlHeader.add(jlblHeader);
@@ -97,14 +97,14 @@ public class BookCopyManagementPanel extends JPanel {
 		jbtnUpdate.setBackground(Color.WHITE);
 		/*jbtnUpdate.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int selectedRowIndexOnTable = jtblBookCopy.getSelectedRow();
+				int selectedRowIndexOnTable = jtblBorrow.getSelectedRow();
 				if (selectedRowIndexOnTable == -1) {
 					JOptionPane.showMessageDialog(thisPanel,
 							"Please select a book first before clicking this button.", "Warning!",
 							JOptionPane.WARNING_MESSAGE);
 					return;
 				}
-				int databaseIdOfSelectedAccount = (int) jtblBookCopy.getValueAt(selectedRowIndexOnTable, 0);
+				int databaseIdOfSelectedAccount = (int) jtblBorrow.getValueAt(selectedRowIndexOnTable, 0);
 
 				updateDialog.initializeWithAccountId(databaseIdOfSelectedAccount);
 
@@ -121,7 +121,7 @@ public class BookCopyManagementPanel extends JPanel {
 		jbtnDelete.setBackground(Color.WHITE);
 		jbtnDelete.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int selectedRowIndexOnTable = jtblBookCopy.getSelectedRow();
+				int selectedRowIndexOnTable = jtblBorrow.getSelectedRow();
 				if (selectedRowIndexOnTable == -1) {
 					JOptionPane.showMessageDialog(thisPanel,
 							"Please select a book copy first before clicking this button.", "Warning!",
@@ -131,7 +131,7 @@ public class BookCopyManagementPanel extends JPanel {
 				if (JOptionPane.showConfirmDialog(thisPanel,
 						"Are you sure you want to delete this book copy?") == JOptionPane.YES_OPTION) {
 					// perform delete here
-					int databaseIdOfSelectedAccount = (int) jtblBookCopy.getValueAt(selectedRowIndexOnTable, 0);
+					int databaseIdOfSelectedAccount = (int) jtblBorrow.getValueAt(selectedRowIndexOnTable, 0);
 					try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/pnr_db",
 							"pnr_app", "password123");
 							PreparedStatement deleteStatement = connection
@@ -166,11 +166,11 @@ public class BookCopyManagementPanel extends JPanel {
 		add(jscrlpnAccounts);
 		/* END OF jscrlpnAccounts */
 
-		/* jtblBookCopy - Main Panel Table */
-		jtblBookCopy = new JTable();
-		jtblBookCopy.setRowHeight(22);
-		jtblBookCopy.setIntercellSpacing(new Dimension(4, 4));
-		jscrlpnAccounts.setViewportView(jtblBookCopy);
+		/* jtblBorrow - Main Panel Table */
+		jtblBorrow = new JTable();
+		jtblBorrow.setRowHeight(22);
+		jtblBorrow.setIntercellSpacing(new Dimension(4, 4));
+		jscrlpnAccounts.setViewportView(jtblBorrow);
 		
 		/*
 		// Create the add form dialog
@@ -205,7 +205,7 @@ public class BookCopyManagementPanel extends JPanel {
 		} catch (SQLException e) {
 			JOptionPane.showMessageDialog(this, e);
 		}
-		jtblBookCopy.setModel(booksTableData);
+		jtblBorrow.setModel(booksTableData);
 		
 		*/
 	}
