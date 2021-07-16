@@ -1,11 +1,10 @@
 package co.bisri.librarysystem.admin.ui;
 
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.SystemColor;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -21,32 +20,46 @@ import co.bisri.librarysystem.admin.ui.bookcategory.BooksCategoryManagementPanel
 import co.bisri.librarysystem.admin.ui.bookcopy.BookCopyManagementPanel;
 import co.bisri.librarysystem.admin.ui.borrow.BorrowManagementPanel;
 
-public class MainFrame extends JFrame{
+public class MainFrame extends JFrame {
+	
+	/*
+	 * String constants for CardLayout traversal 
+	 */
+	private static final String BOOK_MANAGEMENT_PANEL = "BOOK";
+	private static final String BOOK_CATEGORY_MANAGEMENT_PANEL = "BOOK CATEGORY";
+	private static final String BOOK_COPY_MANAGEMENT_PANEL = "BOOK COPY";
+	private static final String BORROW_MANAGEMENT_PANEL = "BORROW";
+	
 	/**
 	 * Ignore for now, this is to avoid warnings.
 	 */
 	private static final long serialVersionUID = 1L;
+	
 	/**
 	 * Custom content pane for this Frame
 	 */
 	private JPanel jpnlContentPane;
 	
 	/**
-	 * The current shown panel (to the right)
+	 * The main content panel, uses a CardLayout
 	 */
-	private JPanel jpnlCurrentShownPanel;
+	private JPanel jpnlMainContentPanel;
+	
 	/**
 	 * Books Management Panel of this module.
 	 */
 	private BooksManagementPanel booksManagementPanel;
+	
 	/**
 	 * Books Category Management Panel of this module.
 	 */
 	private BooksCategoryManagementPanel booksCategoryManagementPanel;
+	
 	/**
 	 * Books Copy Management Panel of this module.
 	 */
 	private BookCopyManagementPanel bookCopyManagementPanel;
+	
 	/**
 	 * Borrow Management Panel of this module.
 	 */
@@ -59,6 +72,7 @@ public class MainFrame extends JFrame{
 		setTitle("Library Management Administrator");
 		setBounds(100, 100, 770, 492);
 		setMinimumSize(new Dimension(770, 492));
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		/* END OF Frame Properties */
 		
 		/* jpnlContentPane - custom content pane for this frame */
@@ -74,12 +88,20 @@ public class MainFrame extends JFrame{
 		jpnlSidebar.setBackground(SystemColor.desktop);
 		jpnlSidebar.setMaximumSize(new Dimension(225, 32767));
 		jpnlSidebar.setMinimumSize(new Dimension(225, 10));
-		jpnlContentPane.add(jpnlSidebar);
 		jpnlSidebar.setLayout(new BoxLayout(jpnlSidebar, BoxLayout.Y_AXIS));
+		jpnlContentPane.add(jpnlSidebar);
 		/* END OF jpnlSidebar */
 		
-		/* jlblSidebarHeader - header label in the sidebar */
+		/* jpnlMainContentPanel - the main content panel where management panels are displayed */
+		jpnlMainContentPanel = new JPanel();
+		jpnlMainContentPanel.setMaximumSize(new Dimension(32767, 32767));
+		jpnlMainContentPanel.setLayout(new CardLayout());
+		// Default show an empty panel
+		jpnlMainContentPanel.add(new JPanel());
+		jpnlContentPane.add(jpnlMainContentPanel);
+		/* END OF jpnlMainContentPanel */
 		
+		/* jlblSidebarHeader - header label in the sidebar */
 		JLabel jlblMiniHeader = new JLabel("<html>Polytechnic University of <br>the Philippines</html>");
 		jlblMiniHeader.setAlignmentY(0.0f);
 		jlblMiniHeader.setForeground(Color.WHITE);
@@ -95,40 +117,19 @@ public class MainFrame extends JFrame{
 		jpnlSidebar.add(jlblSidebarHeader);
 		/* END OF jlblSidebarHeader */
 		
-		
 		// Spacing for the sidebar before the buttons
 		jpnlSidebar.add(Box.createRigidArea(new Dimension(0, 50)));
 		
 		/* jbtnBookCategory -- Button for Book Category panel */
 		JButton jbtnBookCategory = new JButton("Book Category");
-		jbtnBookCategory.setAlignmentY(0.0f);
-		jbtnBookCategory.setHorizontalAlignment(SwingConstants.LEFT);
-		jbtnBookCategory.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// If the current shown panel is station management panel,
-				// do nothing.
-				if(jpnlCurrentShownPanel == booksCategoryManagementPanel)
-					return;
-				
-				// Else, if the current shown panel is another,
-				// remove it from the content pane
-				else if(jpnlCurrentShownPanel != null) {
-					jpnlContentPane.remove(jpnlCurrentShownPanel);
-					revalidate();
-				}
-
-				// Refresh the table
-				//booksManagementPanel.refreshTable();
-				// Set current shown panel (pointer) to booksManagementPanel
-				jpnlCurrentShownPanel = booksCategoryManagementPanel;
-				// Add booksManagementPanel to the content pane
-				jpnlContentPane.add(booksCategoryManagementPanel);
-				// Redraw the frame
-				revalidate();
-			}
+		
+		jbtnBookCategory.addActionListener((event) -> {
+			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
+			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_CATEGORY_MANAGEMENT_PANEL);
 		});
 		
+		jbtnBookCategory.setAlignmentY(0.0f);
+		jbtnBookCategory.setHorizontalAlignment(SwingConstants.LEFT);
 		jbtnBookCategory.setMinimumSize(new Dimension(200, 40));
 		jbtnBookCategory.setFont(new Font("Roboto", Font.PLAIN, 13));
 		jbtnBookCategory.setForeground(Color.WHITE);
@@ -143,33 +144,13 @@ public class MainFrame extends JFrame{
 		
 		/*jbtnBook -- Button for Book*/
 		JButton jbtnBook = new JButton("Book");
-		jbtnBook.setAlignmentY(0.0f);
-		jbtnBook.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// If the current shown panel is station management panel,
-				// do nothing.
-				if(jpnlCurrentShownPanel == booksManagementPanel)
-					return;
-				
-				// Else, if the current shown panel is another,
-				// remove it from the content pane
-				else if(jpnlCurrentShownPanel != null) {
-					jpnlContentPane.remove(jpnlCurrentShownPanel);
-					revalidate();
-				}
-
-				// Refresh the table
-				//booksManagementPanel.refreshTable();
-				// Set current shown panel (pointer) to booksManagementPanel
-				jpnlCurrentShownPanel = booksManagementPanel;
-				// Add booksManagementPanel to the content pane
-				jpnlContentPane.add(booksManagementPanel);
-				// Redraw the frame
-				revalidate();
-			}
+		
+		jbtnBook.addActionListener((event) -> {
+			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
+			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_MANAGEMENT_PANEL);
 		});
 		
+		jbtnBook.setAlignmentY(0.0f);
 		jbtnBook.setMinimumSize(new Dimension(200, 40));
 		jbtnBook.setMaximumSize(new Dimension(32767, 40));
 		jbtnBook.setHorizontalAlignment(SwingConstants.LEFT);
@@ -184,33 +165,13 @@ public class MainFrame extends JFrame{
 		
 		/*jbtnBookCopy*/
 		JButton jbtnBookCopy = new JButton("Book Copy");
-		jbtnBookCopy.setAlignmentY(0.0f);
-		jbtnBookCopy.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// If the current shown panel is station management panel,
-				// do nothing.
-				if(jpnlCurrentShownPanel == bookCopyManagementPanel)
-					return;
-				
-				// Else, if the current shown panel is another,
-				// remove it from the content pane
-				else if(jpnlCurrentShownPanel != null) {
-					jpnlContentPane.remove(jpnlCurrentShownPanel);
-					revalidate();
-				}
-
-				// Refresh the table
-				//booksManagementPanel.refreshTable();
-				// Set current shown panel (pointer) to booksManagementPanel
-				jpnlCurrentShownPanel = bookCopyManagementPanel;
-				// Add booksManagementPanel to the content pane
-				jpnlContentPane.add(bookCopyManagementPanel);
-				// Redraw the frame
-				revalidate();
-			}
+		
+		jbtnBookCopy.addActionListener((event) -> {
+			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
+			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_COPY_MANAGEMENT_PANEL);
 		});
 		
+		jbtnBookCopy.setAlignmentY(0.0f);
 		jbtnBookCopy.setMinimumSize(new Dimension(200, 40));
 		jbtnBookCopy.setMaximumSize(new Dimension(32767, 40));
 		jbtnBookCopy.setHorizontalAlignment(SwingConstants.LEFT);
@@ -240,31 +201,6 @@ public class MainFrame extends JFrame{
 		
 		/* jbtnBorrow*/
 		JButton jbtnBorrow = new JButton("Borrow");
-		jbtnBorrow.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// If the current shown panel is station management panel,
-				// do nothing.
-				if(jpnlCurrentShownPanel == borrowManagementPanel)
-					return;
-				
-				// Else, if the current shown panel is another,
-				// remove it from the content pane
-				else if(jpnlCurrentShownPanel != null) {
-					jpnlContentPane.remove(jpnlCurrentShownPanel);
-					revalidate();
-				}
-
-				// Refresh the table
-				//booksManagementPanel.refreshTable();
-				// Set current shown panel (pointer) to booksManagementPanel
-				jpnlCurrentShownPanel = borrowManagementPanel;
-				// Add booksManagementPanel to the content pane
-				jpnlContentPane.add(borrowManagementPanel);
-				// Redraw the frame
-				revalidate();
-			}
-		});
 	
 		jbtnBorrow.setMinimumSize(new Dimension(200, 35));
 		jbtnBorrow.setMaximumSize(new Dimension(32767, 35));
@@ -297,18 +233,22 @@ public class MainFrame extends JFrame{
 	
 	public void setBooksManagementPanel(BooksManagementPanel booksManagementPanel) {
 		this.booksManagementPanel = booksManagementPanel;
+		jpnlMainContentPanel.add(booksManagementPanel, BOOK_MANAGEMENT_PANEL);
 	}
 	
 	public void setBooksCategoryManagementPanel(BooksCategoryManagementPanel booksCategoryManagementPanel) {
 		this.booksCategoryManagementPanel = booksCategoryManagementPanel;
+		jpnlMainContentPanel.add(booksCategoryManagementPanel, BOOK_CATEGORY_MANAGEMENT_PANEL);
 	}
 	
 	public void setBookCopyManagementPanel(BookCopyManagementPanel bookCopyManagementPanel) {
 		this.bookCopyManagementPanel = bookCopyManagementPanel;
+		jpnlMainContentPanel.add(bookCopyManagementPanel, BOOK_COPY_MANAGEMENT_PANEL);
 	}
 	
 	public void setBorrowManagementPanel(BorrowManagementPanel borrowManagementPanel) {
 		this.borrowManagementPanel = borrowManagementPanel;
+		jpnlMainContentPanel.add(borrowManagementPanel, BORROW_MANAGEMENT_PANEL);
 	}
 	
 }
