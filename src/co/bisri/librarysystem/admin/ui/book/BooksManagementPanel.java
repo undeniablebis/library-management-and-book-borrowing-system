@@ -28,11 +28,11 @@ public class BooksManagementPanel extends JPanel {
 	 * remove warnings)
 	 */
 	private static final long serialVersionUID = 1L;
+	
 	/**
 	 * The main table of this panel.
 	 */
 	private JTable jtblBooks;
-
 	/**
 	 * Add Form Dialog of this panel.
 	 */

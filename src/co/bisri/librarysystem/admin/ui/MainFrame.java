@@ -126,6 +126,7 @@ public class MainFrame extends JFrame {
 		jbtnBookCategory.addActionListener((event) -> {
 			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
 			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_CATEGORY_MANAGEMENT_PANEL);
+			booksCategoryManagementPanel.initializePanel();
 		});
 		
 		jbtnBookCategory.setAlignmentY(0.0f);
@@ -229,7 +230,6 @@ public class MainFrame extends JFrame {
 		jpnlSidebar.add(jbtnBorrowItem);
 		/* END OF jbtnBorrowItem */
 	}
-	
 	
 	public void setBooksManagementPanel(BooksManagementPanel booksManagementPanel) {
 		this.booksManagementPanel = booksManagementPanel;
