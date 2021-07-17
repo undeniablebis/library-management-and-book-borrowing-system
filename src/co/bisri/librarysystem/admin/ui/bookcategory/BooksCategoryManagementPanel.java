@@ -188,6 +188,67 @@ public class BooksCategoryManagementPanel extends JPanel {
 		jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		jbtnDelete.setBackground(Color.WHITE);
 		jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnDelete.addActionListener((event) -> {
+			// Get current selected row
+			int selectedRow = jtblBooksCategory.getSelectedRow();
+			
+			// If no row is selected, don't proceed
+			if(selectedRow == -1) {
+				JOptionPane.showMessageDialog(
+						booksCategoryManagementPanel,
+						"Please select a record first before clicking the delete button.",
+						"Select first!",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Else, confirm the user, then proceed if user agrees
+			String selectedName = (String) bookCategoryTableModel.getValueAt(selectedRow, 0);
+			if(JOptionPane.showConfirmDialog(
+					booksCategoryManagementPanel,
+					"Are you sure you want to delete category named: " + selectedName + "?",
+					"Confirmation",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+				
+				// Use a SwingWorker thread to perform delete
+				new SwingWorker<Void, Void>() {
+					@Override
+					protected Void doInBackground() throws Exception {
+						try(Connection connection = dataSource.getConnection();
+							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM book_category WHERE name = ?")) {
+							
+							// Bind the name retrieved from table
+							deleteStatement.setString(1, selectedName);
+							// Execute delete
+							deleteStatement.execute();
+						}
+						return null;
+					}
+					@Override
+					protected void done() {
+						try {
+							get();
+							// If success, show dialog
+							JOptionPane.showMessageDialog(
+									booksCategoryManagementPanel,
+									"Successfully deleted category.",
+									"Success!",
+									JOptionPane.INFORMATION_MESSAGE);
+							// Update the management panel
+							setCurrentPage(currentPage);
+						} catch (InterruptedException | ExecutionException e) {
+							// If an error occured, show dialog and inform user.
+							JOptionPane.showMessageDialog(
+								booksCategoryManagementPanel,
+								"An error occured while trying to delete category.\n\nError: " + e.getMessage(),
+								"Database access error!",
+								JOptionPane.ERROR_MESSAGE);
+						}
+					}
+				}.execute();
+			}
+		});
 		jpnlButtonActions.add(jbtnDelete);
 		/* END OF jbtnDelete */
 
@@ -304,6 +365,13 @@ public class BooksCategoryManagementPanel extends JPanel {
 				}
 			}
 		}.execute();
+	}
+	
+	/**
+	 * Get the current page displayed by this panel.
+	 */
+	public int getCurrentPage() {
+		return currentPage;
 	}
 	
 	// Fetch all book categories based on given page

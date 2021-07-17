@@ -191,6 +191,7 @@ public class FormDialog extends JDialog {
 					try(Connection connection = booksCategoryManagementPanel.dataSource.getConnection()) {
 						switch(currentOperation) {
 						
+						// If form is in insert mode, perform an SQL INSERT
 						case INSERT:
 							try(PreparedStatement bookCategoryInsertStatement = connection.prepareStatement(
 									"INSERT INTO book_category(name, description) VALUES(?, ?)")) {
@@ -200,7 +201,8 @@ public class FormDialog extends JDialog {
 							}
 							
 							break;
-							
+						
+						// Else, perform an SQL UPDATE with the old name
 						case UPDATE:
 							try(PreparedStatement bookCategoryUpdateStatement = connection.prepareStatement(
 									"UPDATE book_category SET name = ?, description = ? WHERE name = ?")) {
@@ -221,14 +223,16 @@ public class FormDialog extends JDialog {
 				protected void done() {
 					try {
 						get();
+						// If success, show dialog
 						JOptionPane.showMessageDialog(
 							booksCategoryManagementPanel,
 							"Successfully saved category to database. Refreshing your panel.",
 							"Success!",
 							JOptionPane.INFORMATION_MESSAGE);
 						setVisible(false);
-						booksCategoryManagementPanel.initializePanel();
+						booksCategoryManagementPanel.setCurrentPage(booksCategoryManagementPanel.getCurrentPage());
 					} catch (InterruptedException | ExecutionException e) {
+						// If an error occured, show dialog and inform user.
 						JOptionPane.showMessageDialog(
 							booksCategoryManagementPanel,
 							"An error occured while trying to save to database.\n\nError: " + e.getMessage(),
