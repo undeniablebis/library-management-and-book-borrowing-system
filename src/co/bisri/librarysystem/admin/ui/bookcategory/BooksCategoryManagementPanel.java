@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -17,6 +18,7 @@ import javax.sql.DataSource;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -41,7 +43,7 @@ public class BooksCategoryManagementPanel extends JPanel {
 	/**
 	 * Main datasource
 	 */
-	private DataSource dataSource;
+	protected DataSource dataSource;
 	
 	/**
 	 * The main table of this panel.
@@ -59,10 +61,9 @@ public class BooksCategoryManagementPanel extends JPanel {
 	private PageButtonPanel pageButtonPanel;
 
 	/**
-	 * Add Form Dialog of this panel.
+	 * Form Dialog of this panel, for adding or updating categories
 	 */
-	//protected AddDialog addDialog;
-	//protected UpdateDialog updateDialog;
+	protected FormDialog formDialog;
 	
 	// Total number of pages available in book category table based on internal size
 	private int totalPageCount;
@@ -73,6 +74,8 @@ public class BooksCategoryManagementPanel extends JPanel {
 	 * Construct the panel.
 	 */
 	public BooksCategoryManagementPanel() {
+		BooksCategoryManagementPanel booksCategoryManagementPanel = this;
+		
 		// Set border to EmptyBorder for spacing
 		setBorder(new EmptyBorder(10, 10, 10, 10));
 		// Use BoxLayout to lay the internal 3 panels: Header, Table, Pagination Actions
@@ -106,11 +109,17 @@ public class BooksCategoryManagementPanel extends JPanel {
 		/* END OF jpnlButtonActions */
 
 		/* jbtnShowAddForm - button for adding an account */
-		JButton jbtnShowAddForm = new JButton("Add");
-		jbtnShowAddForm.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnShowAddForm.setBackground(Color.WHITE);
-		jbtnShowAddForm.setFont(new Font("Roboto", Font.PLAIN, 12));
-		jpnlButtonActions.add(jbtnShowAddForm);
+		JButton jbtnAdd = new JButton("Add");
+		jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		jbtnAdd.setBackground(Color.WHITE);
+		jbtnAdd.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnAdd.addActionListener((event) -> {
+			// Prepare the dialog for new entry
+			formDialog.reset();
+			// Show the dialog
+			formDialog.setVisible(true);
+		});
+		jpnlButtonActions.add(jbtnAdd);
 		/* END OF jbtnShowAddForm */
 
 		/* jbtnUpdate - button for updating account */
@@ -118,6 +127,59 @@ public class BooksCategoryManagementPanel extends JPanel {
 		jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		jbtnUpdate.setBackground(Color.WHITE);
 		jbtnUpdate.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnUpdate.addActionListener((event) -> {
+			// Get current selected row
+			int selectedRow = jtblBooksCategory.getSelectedRow();
+			
+			// If no row is selected, don't proceed
+			if(selectedRow == -1) {
+				JOptionPane.showMessageDialog(
+						booksCategoryManagementPanel,
+						"Please select a record first before clicking the update button.",
+						"Select first!",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Else, fetch the respective bookcategory from the database
+			String selectedName = (String) bookCategoryTableModel.getValueAt(selectedRow, 0);
+			BookCategory bookCategory = null;
+			try(Connection connection = dataSource.getConnection();
+				PreparedStatement retrieveStatement = connection.prepareStatement("SELECT name, description FROM book_category WHERE name = ?")) {
+				
+				// Bind the name retrieved from table
+				retrieveStatement.setString(1, selectedName);
+				
+				try(ResultSet bookCategoryResultSet = retrieveStatement.executeQuery()) {
+					// If a record was found, retrieve
+					if(bookCategoryResultSet.next())
+						bookCategory = new BookCategory(
+							bookCategoryResultSet.getString("name"),
+							bookCategoryResultSet.getString("description"));
+					// If no record was found, show message dialog
+					else {
+						JOptionPane.showMessageDialog(
+							booksCategoryManagementPanel,
+							"No corresponding record was found.",
+							"Select first!",
+							JOptionPane.WARNING_MESSAGE);
+						return;
+					}
+				}
+			} catch(SQLException e) {
+				// If an exception occured, show dialog and inform user
+				JOptionPane.showMessageDialog(
+					booksCategoryManagementPanel,
+					"An error occured while trying to fetch category from the database. Error: " + e.getMessage(),
+					"Error!",
+					JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			// Prepare the dialog for updating entry
+			formDialog.reset(bookCategory);
+			formDialog.setVisible(true);
+		});
 		jpnlButtonActions.add(jbtnUpdate);
 		/* END OF jbtnUpdate */
 
@@ -186,13 +248,10 @@ public class BooksCategoryManagementPanel extends JPanel {
 		add(pageButtonPanel);
 		/* END OF pageButtonPanel */
 		
-		/*
-		// Create the add form dialog
-		addDialog = new AddDialog();
-		addDialog.accountsManagementPanel = this;
-
-		updateDialog = new UpdateDialog();
-		updateDialog.accountsManagementPanel = this; */
+		/* formDialog */
+		formDialog = new FormDialog();
+		formDialog.booksCategoryManagementPanel = this;
+		/* END OF formDialog */
 	}
 
 	/**
