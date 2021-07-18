@@ -24,6 +24,8 @@ public class LibraryManagementAndBookBorrowingSystem {
 		MainFrame mainFrame = new MainFrame();
 		
 		BooksManagementPanel booksManagementPanel = new BooksManagementPanel();
+		booksManagementPanel.setDataSource(dataSource);
+		
 		MemberManagementPanel memberManagementPanel = new MemberManagementPanel();
 		memberManagementPanel.setDataSource(dataSource);
 		

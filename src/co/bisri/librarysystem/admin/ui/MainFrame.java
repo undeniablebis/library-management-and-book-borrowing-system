@@ -31,6 +31,7 @@ public class MainFrame extends JFrame {
 	private static final String BOOK_COPY_MANAGEMENT_PANEL = "BOOK COPY";
 	private static final String BORROW_MANAGEMENT_PANEL = "BORROW";
 	private static final String MEMBER_MANAGEMENT_PANEL = "MEMBER";
+	
 
 	/**
 	 * Ignore for now, this is to avoid warnings.
@@ -71,6 +72,8 @@ public class MainFrame extends JFrame {
 	 * Member Management Panel of this module.
 	 */
 	private MemberManagementPanel memberManagementPanel;
+	
+
 
 	public MainFrame() {
 		setForeground(SystemColor.activeCaptionText);
@@ -160,6 +163,7 @@ public class MainFrame extends JFrame {
 		jbtnBook.addActionListener((event) -> {
 			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
 			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_MANAGEMENT_PANEL);
+			booksManagementPanel.initializePanel();
 		});
 
 		jbtnBook.setAlignmentY(0.0f);

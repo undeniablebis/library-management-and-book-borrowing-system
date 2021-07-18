@@ -5,13 +5,18 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import javax.sql.DataSource;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -19,7 +24,10 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
+
+import co.bisri.librarysystem.admin.ui.util.PageButtonPanel;
 
 public class BooksManagementPanel extends JPanel {
 
@@ -30,20 +38,46 @@ public class BooksManagementPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	
 	/**
+	 * Page Size
+	 */
+	private final int PAGE_SIZE = 20;
+	
+	/**
+	 * Main datasource
+	 */
+	protected DataSource dataSource;
+	
+	/**
 	 * The main table of this panel.
 	 */
 	private JTable jtblBooks;
+	
 	/**
-	 * Add Form Dialog of this panel.
+	 * Table Model of jtblBooksCategory
 	 */
-	//protected AddDialog addDialog;
-	//protected UpdateDialog updateDialog;
+	private BooksTableModel booksTableModel;
+	
+	/**
+	 * Paginating page button panel.
+	 */
+	private PageButtonPanel pageButtonPanel;
+
+	/**
+	 * Form Dialog of this panel, for adding or updating categories
+	 */
+	protected FormDialog formDialog;
+	
+	// Total number of pages available in book category table based on internal size
+	private int totalPageCount;
+	// Current rendered page
+	private int currentPage;
 
 	/**
 	 * Construct the panel.
 	 */
 	public BooksManagementPanel() {
-		BooksManagementPanel thisPanel = this;
+		BooksManagementPanel booksManagementPanel = this;
+		
 		// Set border to EmptyBorder for spacing
 		setBorder(new EmptyBorder(10, 10, 10, 10));
 		// Use BoxLayout to lay the internal 3 panels: Header, Table, Pagination Actions
@@ -51,6 +85,8 @@ public class BooksManagementPanel extends JPanel {
 
 		/* jpnlHeader - Header Panel */
 		JPanel jpnlHeader = new JPanel();
+		jpnlHeader.setAlignmentY(0.0f);
+		jpnlHeader.setAlignmentX(0.0f);
 		jpnlHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
 		jpnlHeader.setMinimumSize(new Dimension(10, 45));
 		jpnlHeader.setMaximumSize(new Dimension(32767, 55));
@@ -59,7 +95,7 @@ public class BooksManagementPanel extends JPanel {
 		/* END OF jpnlHeader */
 
 		/* jlblHeader - Header label */
-		JLabel jlblHeader = new JLabel("Manage Books");
+		JLabel jlblHeader = new JLabel("Manage Book");
 		jlblHeader.setAlignmentY(0.0f);
 		jlblHeader.setFont(new Font("Roboto Light", Font.BOLD, 24));
 		jpnlHeader.add(jlblHeader);
@@ -75,40 +111,83 @@ public class BooksManagementPanel extends JPanel {
 		/* END OF jpnlButtonActions */
 
 		/* jbtnShowAddForm - button for adding an account */
-		JButton jbtnShowAddForm = new JButton("Add");
-		jbtnShowAddForm.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnShowAddForm.setBackground(Color.WHITE);
-		jbtnShowAddForm.setFont(new Font("Roboto", Font.PLAIN, 12));
-		/*
-		jbtnShowAddForm.addActionListener(event -> {
-			addDialog.resetForm();
-			addDialog.setVisible(true);
+		JButton jbtnAdd = new JButton("Add");
+		jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		jbtnAdd.setBackground(Color.WHITE);
+		jbtnAdd.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnAdd.addActionListener((event) -> {
+			// Prepare the dialog for new entry
+			formDialog.reset();
+			// Show the dialog
+			formDialog.setVisible(true);
 		});
-		*/
-		jpnlButtonActions.add(jbtnShowAddForm);
+		jpnlButtonActions.add(jbtnAdd);
 		/* END OF jbtnShowAddForm */
 
 		/* jbtnUpdate - button for updating account */
 		JButton jbtnUpdate = new JButton("Update");
 		jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		jbtnUpdate.setBackground(Color.WHITE);
-		/*jbtnUpdate.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				int selectedRowIndexOnTable = jtblBooks.getSelectedRow();
-				if (selectedRowIndexOnTable == -1) {
-					JOptionPane.showMessageDialog(thisPanel,
-							"Please select a book first before clicking this button.", "Warning!",
-							JOptionPane.WARNING_MESSAGE);
-					return;
-				}
-				int databaseIdOfSelectedAccount = (int) jtblBooks.getValueAt(selectedRowIndexOnTable, 0);
-
-				updateDialog.initializeWithAccountId(databaseIdOfSelectedAccount);
-
-				updateDialog.setVisible(true);
-			}
-		});*/
 		jbtnUpdate.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnUpdate.addActionListener((event) -> {
+			// Get current selected row
+			int selectedRow = jtblBooks.getSelectedRow();
+			
+			// If no row is selected, don't proceed
+			if(selectedRow == -1) {
+				JOptionPane.showMessageDialog(
+						booksManagementPanel,
+						"Please select a book first before clicking the update button.",
+						"Select first!",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Else, fetch the respective Member from the database
+			String selectedIsbn = (String) booksTableModel.getValueAt(selectedRow, 0);
+			Books books = null;
+			try(Connection connection = dataSource.getConnection();
+				PreparedStatement retrieveStatement = connection.prepareStatement("SELECT isbn, category_name, title, author, "
+						+ "published_on, publisher FROM book WHERE isbn = ?")) {
+				
+				// Bind the name retrieved from table
+				retrieveStatement.setString(1, selectedIsbn);
+				
+				try(ResultSet booksResultSet = retrieveStatement.executeQuery()) {
+					// If a record was found, retrieve
+					if(booksResultSet.next())
+						books = new Books(
+							booksResultSet.getString("isbn"),
+							booksResultSet.getString("category_name"),
+							booksResultSet.getString("title"),
+							booksResultSet.getString("author"),
+							LocalDate.parse(booksResultSet.getString("published_on"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+							booksResultSet.getString("publisher"));
+							
+					// If no record was found, show message dialog
+					else {
+						JOptionPane.showMessageDialog(
+							booksManagementPanel,
+							"No corresponding member was found.",
+							"Select first!",
+							JOptionPane.WARNING_MESSAGE);
+						return;
+					}
+				}
+			} catch(SQLException e) {
+				// If an exception occured, show dialog and inform user
+				JOptionPane.showMessageDialog(
+					booksManagementPanel,
+					"An error occured while trying to fetch book from the database. Error: " + e.getMessage(),
+					"Error!",
+					JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			// Prepare the dialog for updating entry
+			formDialog.reset(books);
+			formDialog.setVisible(true);
+		});
 		jpnlButtonActions.add(jbtnUpdate);
 		/* END OF jbtnUpdate */
 
@@ -116,97 +195,242 @@ public class BooksManagementPanel extends JPanel {
 		JButton jbtnDelete = new JButton("Delete");
 		jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		jbtnDelete.setBackground(Color.WHITE);
-		jbtnDelete.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				int selectedRowIndexOnTable = jtblBooks.getSelectedRow();
-				if (selectedRowIndexOnTable == -1) {
-					JOptionPane.showMessageDialog(thisPanel,
-							"Please select a book first before clicking this button.", "Warning!",
-							JOptionPane.WARNING_MESSAGE);
-					return;
-				}
-				if (JOptionPane.showConfirmDialog(thisPanel,
-						"Are you sure you want to delete this book?") == JOptionPane.YES_OPTION) {
-					// perform delete here
-					int databaseIdOfSelectedAccount = (int) jtblBooks.getValueAt(selectedRowIndexOnTable, 0);
-					try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/pnr_db",
-							"pnr_app", "password123");
-							PreparedStatement deleteStatement = connection
-									.prepareStatement("DELETE FROM cashier WHERE id = ?")) {
-
-						deleteStatement.setInt(1, databaseIdOfSelectedAccount);
-
-						deleteStatement.execute();
-
-						JOptionPane.showMessageDialog(thisPanel, "Successfully deleted account.", "Success!",
-								JOptionPane.INFORMATION_MESSAGE);
-
-						//refreshTable();
-					} catch (SQLException e1) {
-						JOptionPane.showMessageDialog(thisPanel,
-								"An error occured while fetching contacts from the database.\n\nDetails: "
-										+ e1.getMessage());
+		jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnDelete.addActionListener((event) -> {
+			// Get current selected row
+			int selectedRow = jtblBooks.getSelectedRow();
+			
+			// If no row is selected, don't proceed
+			if(selectedRow == -1) {
+				JOptionPane.showMessageDialog(
+						booksManagementPanel,
+						"Please select a book first before clicking the delete button.",
+						"Select first!",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Else, confirm the user, then proceed if user agrees
+			int selectedId = (int) booksTableModel.getValueAt(selectedRow, 0);
+			if(JOptionPane.showConfirmDialog(
+					booksManagementPanel,
+					"Are you sure you want to delete book named: " + selectedId + "?",
+					"Confirmation",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+				
+				// Use a SwingWorker thread to perform delete
+				new SwingWorker<Void, Void>() {
+					@Override
+					protected Void doInBackground() throws Exception {
+						try(Connection connection = dataSource.getConnection();
+							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM member WHERE id = ?")) {
+							
+							// Bind the name retrieved from table
+							deleteStatement.setInt(1, selectedId);
+							// Execute delete
+							deleteStatement.execute();
+						}
+						return null;
 					}
-				}
+					@Override
+					protected void done() {
+						try {
+							get();
+							// If success, show dialog
+							JOptionPane.showMessageDialog(
+									booksManagementPanel,
+									"Successfully deleted member.",
+									"Success!",
+									JOptionPane.INFORMATION_MESSAGE);
+							// Update the management panel
+							setCurrentPage(currentPage);
+						} catch (InterruptedException | ExecutionException e) {
+							// If an error occured, show dialog and inform user.
+							JOptionPane.showMessageDialog(
+								booksManagementPanel,
+								"An error occured while trying to delete book.\n\nError: " + e.getMessage(),
+								"Database access error!",
+								JOptionPane.ERROR_MESSAGE);
+						}
+					}
+				}.execute();
 			}
 		});
-
-		jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
 		jpnlButtonActions.add(jbtnDelete);
 		/* END OF jbtnDelete */
 
 		/* jscrlpnAccounts - Scrollable Table Panel */
 		JScrollPane jscrlpnAccounts = new JScrollPane();
-		jscrlpnAccounts.setMinimumSize(new Dimension(500, 20));
+		jscrlpnAccounts.setMaximumSize(new Dimension(32767, 32767));
 		jscrlpnAccounts.setAlignmentX(0.0f);
 		jscrlpnAccounts.setAlignmentY(0.0f);
 		add(jscrlpnAccounts);
 		/* END OF jscrlpnAccounts */
 
-		/* jtblBooks - Main Panel Table */
+		/* jtblBooksCategory - Main Panel Table */
 		jtblBooks = new JTable();
+		jtblBooks.setMaximumSize(new Dimension(32767, 32767));
 		jtblBooks.setRowHeight(22);
 		jtblBooks.setIntercellSpacing(new Dimension(4, 4));
 		jscrlpnAccounts.setViewportView(jtblBooks);
+		// Table Model
+		booksTableModel = new BooksTableModel();
+		jtblBooks.setModel(booksTableModel);
+		/* END OF jtblBooksCategory */
 		
-		/*
-		// Create the add form dialog
-		addDialog = new AddDialog();
-		addDialog.accountsManagementPanel = this;
-
-		updateDialog = new UpdateDialog();
-		updateDialog.accountsManagementPanel = this;
+		/* pageButtonPanel - paginating buttons */
+		pageButtonPanel = new PageButtonPanel(
+			// ActionListener for previous button
+			(event) -> {
+				// If it's already the first page, previous button should do nothing
+				if(currentPage == 1)
+					return;
+				
+				// Else, set the current page to the previous page
+				setCurrentPage(--currentPage);
+			},
+			// ActionListener for next button
+			(event) -> {
+				// If it's already the last page, next button should do nothing
+				if(currentPage == totalPageCount)
+					return;
+				
+				// Else, set the current page to the next page
+				setCurrentPage(++currentPage);
+			},
+			// ActionListener for normal page button
+			(event) -> {
+				// Get page value of button
+				int pageNumber = Integer.parseInt(((JButton) event.getSource()).getText());
+				
+				// If current page is already rendered, then button should do nothing
+				if(currentPage == pageNumber)
+					return;
+				
+				// Else, set the current page to the clicked button's page
+				setCurrentPage(pageNumber);
+			});
+		pageButtonPanel.setMaximumSize(new Dimension(32767, 100));
+		pageButtonPanel.setAlignmentX(0.0f);
+		pageButtonPanel.setAlignmentY(0.0f);
+		add(pageButtonPanel);
+		/* END OF pageButtonPanel */
+		
+		/* formDialog */
+		formDialog = new FormDialog();
+		formDialog.booksManagementPanel = this;
+		/* END OF formDialog */
 	}
-	*/
+
+	/**
+	 * Sets the datasource that this panel should use
+	 * @param dataSource
+	 */
+	public void setDataSource(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
 	
-	/*
-	public void refreshTable() {
-		DefaultTableModel booksTableData = new DefaultTableModel();
-		booksTableData.setColumnCount(3);
-		booksTableData.setColumnIdentifiers(new String[] { "ID", "Name", "Assigned Station" });
-
-		try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/pnr_db", "pnr_app",
-				"password123"); Statement retrieveStatement = connection.createStatement();) {
-			retrieveStatement.execute(
-					"SELECT cashier.id, cashier.first_name, cashier.last_name, station.name AS assigned_station FROM cashier LEFT JOIN station ON station.id = cashier.assigned_station_id");
-			ResultSet retrievedAccountsData = retrieveStatement.getResultSet();
-
-			while (retrievedAccountsData.next()) {
-				int id = retrievedAccountsData.getInt("id");
-				String firstName = retrievedAccountsData.getString("first_name");
-				String lastName = retrievedAccountsData.getString("last_name");
-				String assignedStation = retrievedAccountsData.getString("assigned_station");
-				booksTableData.addRow(new Object[] { id, firstName + " " + lastName, assignedStation });
+	/**
+	 * Updates the currently shown categories page
+	 * @param newPage the new page number to show
+	 */
+	public void setCurrentPage(int newPage) {
+		// Update current page
+		currentPage = newPage;
+		// Fetch the total page count from database
+		totalPageCount = fetchMemberCount();
+		
+		// Use a SwingWorker to fetch row count and calculate page count
+		new SwingWorker<Integer, Void>() {
+			@Override
+			protected Integer doInBackground() throws Exception {
+				return fetchMemberCount();
 			}
-
-		} catch (SQLException e) {
-			JOptionPane.showMessageDialog(this, e);
-		}
-		jtblBooks.setModel(booksTableData);
+			@Override
+			protected void done() {
+				try {
+					pageButtonPanel.setTotalPageCount(get());
+					pageButtonPanel.setCurrentPage(newPage);
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+		}.execute();
 		
-		*/
+		// Use a SwingWorker to fetch all book categories on current page
+		new SwingWorker<List<Books>, Void>() {
+			@Override
+			protected List<Books> doInBackground() throws Exception {
+				return fetchBooks(currentPage);
+			}
+			@Override
+			protected void done() {
+				try {
+					booksTableModel.updateCache(get());
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+		}.execute();
 	}
 	
-
-}
+	/**
+	 * Get the current page displayed by this panel.
+	 */
+	public int getCurrentPage() {
+		return currentPage;
+	}
 	
+	// Fetch all book categories based on given page
+	private List<Books> fetchBooks(int page) {
+		int offset = (page - 1) * PAGE_SIZE;
+		
+		List<Books> BooksList = new ArrayList<>();
+		
+		try(Connection connection = dataSource.getConnection();
+			Statement retrieveStatement = connection.createStatement();
+			ResultSet booksResultSet = retrieveStatement.executeQuery("SELECT isbn, category_name, "
+					+ "title, author, published_on, publisher FROM book LIMIT " + PAGE_SIZE + " OFFSET " + offset)) {
+			
+			while(booksResultSet.next())
+				BooksList.add(
+						new Books(
+								booksResultSet.getString("isbn"),
+								booksResultSet.getString("category_name"),
+								booksResultSet.getString("title"),
+								booksResultSet.getString("author"),
+								LocalDate.parse(booksResultSet.getString("published_on")),
+								booksResultSet.getString("publisher")));
+		} catch(SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return BooksList;
+	}
+	
+	// Fetch book category row count
+	private int fetchMemberCount() {
+		try(Connection connection = dataSource.getConnection();
+			Statement retrieveStatement = connection.createStatement();
+			ResultSet countResultSet = retrieveStatement.executeQuery("SELECT COUNT(isbn) AS total_count FROM book")) {
+			
+			countResultSet.next();
+			double totalCount = countResultSet.getDouble("total_count");
+			int totalPageCount = (int) Math.ceil(totalCount / PAGE_SIZE);
+			return totalPageCount;
+		} catch(SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return 0;
+	}
+	
+	/**
+	 * Shows the first page of the panel.
+	 */
+	public void initializePanel() {
+		setCurrentPage(1);
+	}
+	
+}
