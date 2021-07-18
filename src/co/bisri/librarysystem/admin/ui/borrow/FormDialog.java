@@ -10,15 +10,22 @@ import java.awt.Insets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -27,13 +34,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
-import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
-import co.bisri.librarysystem.admin.ui.borrow.record.BookCopyComboBoxItem;
+import co.bisri.librarysystem.admin.ui.borrow.record.BookCopy;
 import co.bisri.librarysystem.admin.ui.borrow.record.Borrow;
 import co.bisri.librarysystem.admin.ui.borrow.record.MemberComboBoxItem;
-import co.bisri.librarysystem.admin.ui.util.FormOperation;
 
 /**
  * Form Dialog for adding and updating borrows
@@ -60,14 +65,9 @@ public class FormDialog extends JDialog {
 	// Header label
 	private JLabel jlblHeader;
 	
-	// Old PK, only used when updating
-	private int oldMemberId;
-	private LocalDate oldBorrowDate;
-	
 	// HashMap of all included book items (with their rendered JComponents
-	
-	// SQL operation to perform when OK is clicked (insert or update)
-	private FormOperation currentOperation;
+	PriorityQueue<Integer> borrowItemGapRows;
+	HashMap<BookCopy, JComponent[]> addedBookCopyComponents;
 	
 	// JPanel of all Items displayed
 	private JPanel jpnlBorrowItems;
@@ -81,12 +81,9 @@ public class FormDialog extends JDialog {
 	private JComboBox<MemberComboBoxItem> jcmbMember;
 	private JTextField jtxtfldBorrowedOn;
 	private JTextField jtxtfldTargetReturnDate;
-	private JTextField jtxtfldReturnedOn;
-	private JComboBox<String> jcmbStatus;
-	private JTextField jtxtfldReturnFee;
 	
 	// Book copy choice combobox
-	private JComboBox<BookCopyComboBoxItem> jcmbBookCopy;
+	private JComboBox<BookCopy> jcmbBookCopy;
 
 	/**
 	 * Create the dialog.
@@ -108,9 +105,9 @@ public class FormDialog extends JDialog {
 		getContentPane().add(jpnlContent, BorderLayout.CENTER);
 		GridBagLayout gbl_jpnlContent = new GridBagLayout();
 		gbl_jpnlContent.columnWidths = new int[]{0, 0, 0, 0, 0};
-		gbl_jpnlContent.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_jpnlContent.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
 		gbl_jpnlContent.columnWeights = new double[]{0.15, 0.35, 0.15, 0.35, Double.MIN_VALUE};
-		gbl_jpnlContent.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
+		gbl_jpnlContent.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
 		jpnlContent.setLayout(gbl_jpnlContent);
 		/* END OF jpnlContent */
 
@@ -192,64 +189,6 @@ public class FormDialog extends JDialog {
 		gbc_jtxtfldTargetReturnDate.gridy = 2;
 		jpnlContent.add(jtxtfldTargetReturnDate, gbc_jtxtfldTargetReturnDate);
 		
-		JLabel jlblReturnedOn = new JLabel("Returned On:");
-		jlblReturnedOn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		GridBagConstraints gbc_jlblReturnedOn = new GridBagConstraints();
-		gbc_jlblReturnedOn.anchor = GridBagConstraints.EAST;
-		gbc_jlblReturnedOn.insets = new Insets(0, 0, 5, 5);
-		gbc_jlblReturnedOn.gridx = 2;
-		gbc_jlblReturnedOn.gridy = 2;
-		jpnlContent.add(jlblReturnedOn, gbc_jlblReturnedOn);
-		
-		jtxtfldReturnedOn = new JTextField();
-		jtxtfldReturnedOn.setMargin(new Insets(5, 5, 5, 5));
-		jtxtfldReturnedOn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		jtxtfldReturnedOn.setColumns(10);
-		GridBagConstraints gbc_jtxtfldReturnedOn = new GridBagConstraints();
-		gbc_jtxtfldReturnedOn.insets = new Insets(0, 0, 5, 0);
-		gbc_jtxtfldReturnedOn.fill = GridBagConstraints.HORIZONTAL;
-		gbc_jtxtfldReturnedOn.gridx = 3;
-		gbc_jtxtfldReturnedOn.gridy = 2;
-		jpnlContent.add(jtxtfldReturnedOn, gbc_jtxtfldReturnedOn);
-		
-		JLabel jlblStatus = new JLabel("Status:");
-		jlblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		GridBagConstraints gbc_jlblStatus = new GridBagConstraints();
-		gbc_jlblStatus.anchor = GridBagConstraints.EAST;
-		gbc_jlblStatus.insets = new Insets(0, 0, 5, 5);
-		gbc_jlblStatus.gridx = 0;
-		gbc_jlblStatus.gridy = 3;
-		jpnlContent.add(jlblStatus, gbc_jlblStatus);
-		
-		jcmbStatus = new JComboBox<>();
-		jcmbStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		GridBagConstraints gbc_jcmbStatus = new GridBagConstraints();
-		gbc_jcmbStatus.insets = new Insets(0, 0, 5, 5);
-		gbc_jcmbStatus.fill = GridBagConstraints.HORIZONTAL;
-		gbc_jcmbStatus.gridx = 1;
-		gbc_jcmbStatus.gridy = 3;
-		jpnlContent.add(jcmbStatus, gbc_jcmbStatus);
-		
-		JLabel jlblReturnFee = new JLabel("Return Fee:");
-		jlblReturnFee.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		GridBagConstraints gbc_jlblReturnFee = new GridBagConstraints();
-		gbc_jlblReturnFee.anchor = GridBagConstraints.EAST;
-		gbc_jlblReturnFee.insets = new Insets(0, 0, 5, 5);
-		gbc_jlblReturnFee.gridx = 2;
-		gbc_jlblReturnFee.gridy = 3;
-		jpnlContent.add(jlblReturnFee, gbc_jlblReturnFee);
-		
-		jtxtfldReturnFee = new JTextField();
-		jtxtfldReturnFee.setMargin(new Insets(5, 5, 5, 5));
-		jtxtfldReturnFee.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		jtxtfldReturnFee.setColumns(10);
-		GridBagConstraints gbc_jtxtfldReturnFee = new GridBagConstraints();
-		gbc_jtxtfldReturnFee.insets = new Insets(0, 0, 5, 0);
-		gbc_jtxtfldReturnFee.fill = GridBagConstraints.HORIZONTAL;
-		gbc_jtxtfldReturnFee.gridx = 3;
-		gbc_jtxtfldReturnFee.gridy = 3;
-		jpnlContent.add(jtxtfldReturnFee, gbc_jtxtfldReturnFee);
-		
 		JLabel jlblItemsHeader = new JLabel("Borrow Items");
 		jlblItemsHeader.setFont(new Font("Segoe UI Black", Font.PLAIN, 16));
 		GridBagConstraints gbc_jlblItemsHeader = new GridBagConstraints();
@@ -257,7 +196,7 @@ public class FormDialog extends JDialog {
 		gbc_jlblItemsHeader.anchor = GridBagConstraints.WEST;
 		gbc_jlblItemsHeader.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblItemsHeader.gridx = 0;
-		gbc_jlblItemsHeader.gridy = 4;
+		gbc_jlblItemsHeader.gridy = 3;
 		jpnlContent.add(jlblItemsHeader, gbc_jlblItemsHeader);
 		
 		jlblSearchMessage = new JLabel("Search Results:");
@@ -265,8 +204,109 @@ public class FormDialog extends JDialog {
 		GridBagConstraints gbc_jlblSearchMessage = new GridBagConstraints();
 		gbc_jlblSearchMessage.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblSearchMessage.gridx = 2;
-		gbc_jlblSearchMessage.gridy = 4;
+		gbc_jlblSearchMessage.gridy = 3;
 		jpnlContent.add(jlblSearchMessage, gbc_jlblSearchMessage);
+		
+		jbtnAddBookCopy = new JButton("Add Item");
+		jbtnAddBookCopy.addActionListener((event) -> {
+			// Get selected item index
+			int selectedItemIndex = jcmbBookCopy.getSelectedIndex();
+			
+			// Check if nothing was selected
+			if(selectedItemIndex == -1) {
+				JOptionPane.showMessageDialog(
+						formDialog,
+						"Please select a book copy to add to this borrow.",
+						"Select an item first!",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// If something was selected, retrieve the BookCopy instance
+			BookCopy bookCopy = (BookCopy) jcmbBookCopy.getSelectedItem();
+			
+			// If it's already in the HashMap, prompt user not to add it
+			if(addedBookCopyComponents.containsKey(bookCopy)) {
+				JOptionPane.showMessageDialog(
+						formDialog,
+						"You already added this specific book copy. Choose another.",
+						"Choose another book.",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Create a jcomponent pointer array for this book copy
+			JComponent[] bookCopyUIComponents = new JComponent[4];
+			
+			// Add the book copy and jcomponents to the hashmap
+			addedBookCopyComponents.put(bookCopy, bookCopyUIComponents);
+			
+			// Find what row index in the Grid to display this item
+			int rowIndexDisplay = borrowItemGapRows.peek() == null ? addedBookCopyComponents.size() : borrowItemGapRows.poll();
+			
+			// ISBN Label
+			JLabel jlblCopyIsbn = new JLabel(bookCopy.isbn());
+			GridBagConstraints gbc_jlblCopyIsbn = new GridBagConstraints();
+			gbc_jlblCopyIsbn.insets = new Insets(0, 0, 5, 5);
+			gbc_jlblCopyIsbn.gridx = 0;
+			gbc_jlblCopyIsbn.gridy = rowIndexDisplay;
+			bookCopyUIComponents[0] = jlblCopyIsbn;
+			jpnlBorrowItems.add(jlblCopyIsbn, gbc_jlblCopyIsbn);
+			
+			// Copy Number Label
+			JLabel jlblCopyNumber = new JLabel("Copy" + bookCopy.copyNo());
+			GridBagConstraints gbc_jlblCopyNumber = new GridBagConstraints();
+			gbc_jlblCopyNumber.insets = new Insets(0, 0, 5, 5);
+			gbc_jlblCopyNumber.gridx = 1;
+			gbc_jlblCopyNumber.gridy = rowIndexDisplay;
+			bookCopyUIComponents[1] = jlblCopyNumber;
+			jpnlBorrowItems.add(jlblCopyNumber, gbc_jlblCopyNumber);
+			
+			// Title Label
+			JLabel jlblCopyTitle = new JLabel(bookCopy.title());
+			GridBagConstraints gbc_jlblCopyTitle = new GridBagConstraints();
+			gbc_jlblCopyTitle.insets = new Insets(0, 0, 5, 5);
+			gbc_jlblCopyTitle.gridx = 2;
+			gbc_jlblCopyTitle.gridy = rowIndexDisplay;
+			bookCopyUIComponents[2] = jlblCopyTitle;
+			jpnlBorrowItems.add(jlblCopyTitle, gbc_jlblCopyTitle);
+			
+			// Remove button
+			JButton jbtnCopyRemove = new JButton("X");
+			jbtnCopyRemove.addActionListener((event1) -> {
+				// Fetch all associated components then remove it from the panel
+				JComponent[] bookCopyComponents = addedBookCopyComponents.get(bookCopy);
+				for(JComponent bookCopyComponent : bookCopyComponents)
+					jpnlBorrowItems.remove(bookCopyComponent);
+				
+				// Remove it from the hashmap
+				addedBookCopyComponents.remove(bookCopy);
+				
+				// Add the index to the gap rows
+				borrowItemGapRows.offer(rowIndexDisplay);
+				
+				// Revalidate the UI tree
+				validate();
+				repaint();
+			});
+			GridBagConstraints gbc_jbtnCopyRemove = new GridBagConstraints();
+			gbc_jbtnCopyRemove.insets = new Insets(0, 0, 5, 5);
+			gbc_jbtnCopyRemove.gridx = 3;
+			gbc_jbtnCopyRemove.gridy = rowIndexDisplay;
+			bookCopyUIComponents[3] = jbtnCopyRemove;
+			jpnlBorrowItems.add(jbtnCopyRemove, gbc_jbtnCopyRemove);
+			
+			// Revalidate the UI tree
+			validate();
+			repaint();
+		});
+		jbtnAddBookCopy.setEnabled(false);
+		jbtnAddBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+		GridBagConstraints gbc_jbtnAddBookCopy = new GridBagConstraints();
+		gbc_jbtnAddBookCopy.insets = new Insets(0, 0, 5, 0);
+		gbc_jbtnAddBookCopy.gridx = 3;
+		gbc_jbtnAddBookCopy.gridy = 3;
+		jpnlContent.add(jbtnAddBookCopy, gbc_jbtnAddBookCopy);
 		
 		JLabel jlblSearchBookCopy = new JLabel("Search ISBN/Title:");
 		jlblSearchBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -274,7 +314,7 @@ public class FormDialog extends JDialog {
 		gbc_jlblSearchBookCopy.anchor = GridBagConstraints.EAST;
 		gbc_jlblSearchBookCopy.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblSearchBookCopy.gridx = 0;
-		gbc_jlblSearchBookCopy.gridy = 5;
+		gbc_jlblSearchBookCopy.gridy = 4;
 		jpnlContent.add(jlblSearchBookCopy, gbc_jlblSearchBookCopy);
 		
 		jtxtfldSearchIsbnTitle = new JTextField();
@@ -287,13 +327,14 @@ public class FormDialog extends JDialog {
 			if(searchKey.length() < 1) {
 				jcmbBookCopy.removeAllItems();
 				jlblSearchMessage.setText("Empty search string.");
+				jbtnAddBookCopy.setEnabled(false);
 				return;
 			}
 			
-			new SwingWorker<List<BookCopyComboBoxItem>, Void>() {
+			new SwingWorker<List<BookCopy>, Void>() {
 				@Override
-				protected List<BookCopyComboBoxItem> doInBackground() throws Exception {
-					List<BookCopyComboBoxItem> bookCopyItems = new ArrayList<>();
+				protected List<BookCopy> doInBackground() throws Exception {
+					List<BookCopy> bookCopyItems = new ArrayList<>();
 					
 					try(Connection connection = borrowManagementPanel.dataSource.getConnection();
 						PreparedStatement retrieveBookCopyStatement =
@@ -301,7 +342,8 @@ public class FormDialog extends JDialog {
 										"SELECT b.isbn, bc.copy_no, b.title "
 										+ "FROM book_copy bc "
 										+ "INNER JOIN book b ON b.isbn = bc.isbn "
-										+ "WHERE b.isbn LIKE ? OR b.title LIKE ?")) {
+										+ "WHERE (b.isbn LIKE ? OR b.title LIKE ?) AND bc.borrow_status = 'AVAILABLE' "
+										+ "AND bc.status IN ('PERFECT', 'GOOD', 'MEDIOCRE')")) {
 						
 						retrieveBookCopyStatement.setString(1, "%" + searchKey + "%");
 						retrieveBookCopyStatement.setString(2, "%" + searchKey + "%");
@@ -309,10 +351,11 @@ public class FormDialog extends JDialog {
 						try(ResultSet bookCopyResultSet = retrieveBookCopyStatement.executeQuery()) {
 							while(bookCopyResultSet.next())
 								bookCopyItems.add(
-										new BookCopyComboBoxItem(
+										new BookCopy(
 												bookCopyResultSet.getString("isbn"),
 												bookCopyResultSet.getInt("copy_no"),
-												bookCopyResultSet.getString("title")));
+												bookCopyResultSet.getString("title"),
+												0.00));
 						}
 					}
 					
@@ -322,7 +365,7 @@ public class FormDialog extends JDialog {
 				protected void done() {
 					try {
 						jcmbBookCopy.removeAllItems();
-						DefaultComboBoxModel<BookCopyComboBoxItem> bookCopyComboBoxModel = new DefaultComboBoxModel<>();
+						DefaultComboBoxModel<BookCopy> bookCopyComboBoxModel = new DefaultComboBoxModel<>();
 						bookCopyComboBoxModel.addAll(get());
 						jcmbBookCopy.setModel(bookCopyComboBoxModel);
 						
@@ -351,33 +394,25 @@ public class FormDialog extends JDialog {
 		gbc_jtxtfldSearchIsbnTitle.insets = new Insets(0, 0, 5, 5);
 		gbc_jtxtfldSearchIsbnTitle.fill = GridBagConstraints.HORIZONTAL;
 		gbc_jtxtfldSearchIsbnTitle.gridx = 1;
-		gbc_jtxtfldSearchIsbnTitle.gridy = 5;
+		gbc_jtxtfldSearchIsbnTitle.gridy = 4;
 		jpnlContent.add(jtxtfldSearchIsbnTitle, gbc_jtxtfldSearchIsbnTitle);
 		
-		jcmbBookCopy = new JComboBox<BookCopyComboBoxItem>();
+		jcmbBookCopy = new JComboBox<BookCopy>();
 		jcmbBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		GridBagConstraints gbc_jcmbBookCopy = new GridBagConstraints();
-		gbc_jcmbBookCopy.insets = new Insets(0, 0, 5, 5);
+		gbc_jcmbBookCopy.gridwidth = 2;
+		gbc_jcmbBookCopy.insets = new Insets(0, 0, 5, 0);
 		gbc_jcmbBookCopy.fill = GridBagConstraints.HORIZONTAL;
 		gbc_jcmbBookCopy.gridx = 2;
-		gbc_jcmbBookCopy.gridy = 5;
+		gbc_jcmbBookCopy.gridy = 4;
 		jpnlContent.add(jcmbBookCopy, gbc_jcmbBookCopy);
-		
-		jbtnAddBookCopy = new JButton("Add Item");
-		jbtnAddBookCopy.setEnabled(false);
-		jbtnAddBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		GridBagConstraints gbc_jbtnAddBookCopy = new GridBagConstraints();
-		gbc_jbtnAddBookCopy.insets = new Insets(0, 0, 5, 0);
-		gbc_jbtnAddBookCopy.gridx = 3;
-		gbc_jbtnAddBookCopy.gridy = 5;
-		jpnlContent.add(jbtnAddBookCopy, gbc_jbtnAddBookCopy);
 		
 		JScrollPane jsclpnBorrowItems = new JScrollPane();
 		GridBagConstraints gbc_jsclpnBorrowItems = new GridBagConstraints();
 		gbc_jsclpnBorrowItems.gridwidth = 4;
 		gbc_jsclpnBorrowItems.fill = GridBagConstraints.BOTH;
 		gbc_jsclpnBorrowItems.gridx = 0;
-		gbc_jsclpnBorrowItems.gridy = 6;
+		gbc_jsclpnBorrowItems.gridy = 5;
 		jpnlContent.add(jsclpnBorrowItems, gbc_jsclpnBorrowItems);
 		
 		jpnlBorrowItems = new JPanel();
@@ -394,7 +429,7 @@ public class FormDialog extends JDialog {
 		jlblBookIsbnHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
 		jlblBookIsbnHeader.setHorizontalAlignment(SwingConstants.TRAILING);
 		GridBagConstraints gbc_jlblBookIsbnHeader = new GridBagConstraints();
-		gbc_jlblBookIsbnHeader.insets = new Insets(0, 0, 0, 5);
+		gbc_jlblBookIsbnHeader.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblBookIsbnHeader.gridx = 0;
 		gbc_jlblBookIsbnHeader.gridy = 0;
 		jpnlBorrowItems.add(jlblBookIsbnHeader, gbc_jlblBookIsbnHeader);
@@ -403,7 +438,7 @@ public class FormDialog extends JDialog {
 		jlblCopyNumberHeader.setHorizontalAlignment(SwingConstants.TRAILING);
 		jlblCopyNumberHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
 		GridBagConstraints gbc_jlblCopyNumberHeader = new GridBagConstraints();
-		gbc_jlblCopyNumberHeader.insets = new Insets(0, 0, 0, 5);
+		gbc_jlblCopyNumberHeader.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblCopyNumberHeader.gridx = 1;
 		gbc_jlblCopyNumberHeader.gridy = 0;
 		jpnlBorrowItems.add(jlblCopyNumberHeader, gbc_jlblCopyNumberHeader);
@@ -412,7 +447,7 @@ public class FormDialog extends JDialog {
 		jlblBookTitleHeader.setHorizontalAlignment(SwingConstants.TRAILING);
 		jlblBookTitleHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
 		GridBagConstraints gbc_jlblBookTitleHeader = new GridBagConstraints();
-		gbc_jlblBookTitleHeader.insets = new Insets(0, 0, 0, 5);
+		gbc_jlblBookTitleHeader.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblBookTitleHeader.gridx = 2;
 		gbc_jlblBookTitleHeader.gridy = 0;
 		jpnlBorrowItems.add(jlblBookTitleHeader, gbc_jlblBookTitleHeader);
@@ -421,6 +456,7 @@ public class FormDialog extends JDialog {
 		jlblRemoveItemHeader.setHorizontalAlignment(SwingConstants.TRAILING);
 		jlblRemoveItemHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
 		GridBagConstraints gbc_jlblRemoveItemHeader = new GridBagConstraints();
+		gbc_jlblRemoveItemHeader.insets = new Insets(0, 0, 5, 5);
 		gbc_jlblRemoveItemHeader.gridx = 3;
 		gbc_jlblRemoveItemHeader.gridy = 0;
 		jpnlBorrowItems.add(jlblRemoveItemHeader, gbc_jlblRemoveItemHeader);
@@ -436,66 +472,135 @@ public class FormDialog extends JDialog {
 		JButton jbtnOk = new JButton("OK");
 		jbtnOk.setActionCommand("OK");
 		jbtnOk.addActionListener((event) -> {
-			/*/ Fetch data from input fields
-			String name = jtxtfldName.getText();
-			String description = jtxtareaDescription.getText();
 			
-			// Validation Layer
-			// Check name
-			if(name.contentEquals("") || name.length() > 32) {
+			// Get selected member
+			int selectedMemberIndex = jcmbMember.getSelectedIndex();
+			if(selectedMemberIndex == -1) {
 				JOptionPane.showMessageDialog(
 						formDialog,
-						"Invalid value for name. Please check that it matches the ff. criteria:\n"
-						+ "- Not empty or blank\n"
-						+ "- Up to 32 characters",
+						"Please select a valid member.",
 						"Invalid input.",
 						JOptionPane.WARNING_MESSAGE);
+				return;
 			}
-			// Check description
-			if(description.contentEquals("") || description.length() > 256) {
+			int memberId = ((MemberComboBoxItem) jcmbMember.getSelectedItem()).id();
+			
+			// Check if selected member has a pending borrow
+			try(Connection connection = borrowManagementPanel.dataSource.getConnection();
+				PreparedStatement checkerStatement = connection.prepareStatement("SELECT member_id, borrowed_on FROM borrow WHERE member_id = ? AND status = 'STILL_BORROWING'")) {
+				checkerStatement.setInt(1, memberId);
+				try(ResultSet pendingBorrowResultSet = checkerStatement.executeQuery()) {
+					if(pendingBorrowResultSet.next()) {
+						// If an error occured, show dialog and inform user.
+						JOptionPane.showMessageDialog(
+								formDialog,
+								"This member has borrowed already and have not yet returned the items.",
+								"Cannot proceed.",
+								JOptionPane.WARNING_MESSAGE);
+						return;
+					}
+				}
+			} catch(SQLException e) {
+				// If an error occured, show dialog and inform user.
 				JOptionPane.showMessageDialog(
-						formDialog,
-						"Invalid value for description. Please check that it matches the ff. criteria:\n"
-						+ "- Not empty or blank\n"
-						+ "- Up to 256 characters",
-						"Invalid input.",
-						JOptionPane.WARNING_MESSAGE);
+						borrowManagementPanel,
+						"An error occured while trying to check if member has borrows.\n\nError: " + e.getMessage(),
+						"Database access error!",
+						JOptionPane.ERROR_MESSAGE);
+				return;
 			}
 			
-			// Create a new BookCategory record
-			BookCategory bookCategory = new BookCategory(name, description);
+			// Get borrowed on
+			LocalDate borrowedOn = null;
+			try {
+				 borrowedOn = LocalDate.parse(jtxtfldBorrowedOn.getText());
+			} catch(DateTimeParseException e) {
+				JOptionPane.showMessageDialog(
+						formDialog,
+						"Invalid borrowed on date. Must be of the format yyyy-MM-dd",
+						"Invalid input.",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Get target return date
+			LocalDate targetReturnDate = null;
+			try {
+				targetReturnDate = LocalDate.parse(jtxtfldTargetReturnDate.getText());
+			} catch(DateTimeParseException e) {
+				JOptionPane.showMessageDialog(
+						formDialog,
+						"Invalid target return date. Must be of the format yyyy-MM-dd",
+						"Invalid input.",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			// Get all book copies added, transform into item instances
+			if(addedBookCopyComponents.size() == 0) {
+				JOptionPane.showMessageDialog(
+						formDialog,
+						"Cannot make a borrow without any items. Please add at least one.",
+						"Invalid input.",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			List<BookCopy> borrowItemList = new LinkedList<>();
+			for(BookCopy bookCopy : addedBookCopyComponents.keySet())
+				borrowItemList.add(bookCopy);
+			// Create a borrow
+			Borrow borrow = new Borrow(memberId, borrowedOn, targetReturnDate, null, "STILL_BORROWING", 0.00, borrowItemList);
 			
 			// Save it to database with a SwingWorker Thread in background
 			new SwingWorker<Void, Void>() {
 				@Override
 				protected Void doInBackground() throws Exception {
-					try(Connection connection = booksCategoryManagementPanel.dataSource.getConnection()) {
-						switch(currentOperation) {
+					try(Connection connection = borrowManagementPanel.dataSource.getConnection()) {
+						// Start database transaction
+						connection.setAutoCommit(false);
 						
-						// If form is in insert mode, perform an SQL INSERT
-						case INSERT:
-							try(PreparedStatement bookCategoryInsertStatement = connection.prepareStatement(
-									"INSERT INTO book_category(name, description) VALUES(?, ?)")) {
-								bookCategoryInsertStatement.setString(1, bookCategory.name());
-								bookCategoryInsertStatement.setString(2, bookCategory.description());
-								bookCategoryInsertStatement.execute();
-							}
-							
-							break;
-						
-						// Else, perform an SQL UPDATE with the old name
-						case UPDATE:
-							try(PreparedStatement bookCategoryUpdateStatement = connection.prepareStatement(
-									"UPDATE book_category SET name = ?, description = ? WHERE name = ?")) {
-								bookCategoryUpdateStatement.setString(1, bookCategory.name());
-								bookCategoryUpdateStatement.setString(2, bookCategory.description());
-								bookCategoryUpdateStatement.setString(3, oldCategoryName);
-								bookCategoryUpdateStatement.execute();
-							}
-							
-							break;
-							
+						// Save the root object (borrow) first
+						try(PreparedStatement insertBorrowStatement =
+								connection.prepareStatement(
+										"INSERT INTO borrow(member_id, borrowed_on, target_return_date, status) "
+										+ "VALUES (?, ?, ?, ?)")) {
+							insertBorrowStatement.setInt(1, borrow.memberId());
+							insertBorrowStatement.setString(2, borrow.borrowedOn().toString());
+							insertBorrowStatement.setString(3, borrow.targetReturnDate().toString());
+							insertBorrowStatement.setString(4, borrow.status());
+							insertBorrowStatement.execute();
+						} catch(SQLException e) {
+							connection.rollback();
+							throw e;
 						}
+						
+						// Save the items in a batch insert, and update book copy statuses to BORROWED
+						try(PreparedStatement insertItemsStatement =
+								connection.prepareStatement(
+										"INSERT INTO borrow_item(borrow_member_id, borrow_borrowed_on, book_isbn, book_copy_no) "
+										+ "VALUES (?, ?, ?, ?)");
+							PreparedStatement updateBorrowStatusStatement =
+								connection.prepareStatement(
+										"UPDATE book_copy SET borrow_status = 'BORROWED' WHERE isbn = ? AND copy_no = ?")) {
+							for(BookCopy bookCopy : borrow.itemList()) {
+								insertItemsStatement.setInt(1, borrow.memberId());
+								insertItemsStatement.setString(2, borrow.borrowedOn().toString());
+								insertItemsStatement.setString(3, bookCopy.isbn());
+								insertItemsStatement.setInt(4, bookCopy.copyNo());
+								insertItemsStatement.addBatch();
+								
+								updateBorrowStatusStatement.setString(1, bookCopy.isbn());
+								updateBorrowStatusStatement.setInt(2, bookCopy.copyNo());
+								updateBorrowStatusStatement.addBatch();
+							}
+							insertItemsStatement.executeBatch();
+							updateBorrowStatusStatement.executeBatch();
+						} catch(SQLException e) {
+							connection.rollback();
+							throw e;
+						}
+						
+						connection.commit();
 					}
 						
 					return null;
@@ -506,16 +611,28 @@ public class FormDialog extends JDialog {
 						get();
 						// If success, show dialog
 						JOptionPane.showMessageDialog(
-							booksCategoryManagementPanel,
-							"Successfully saved category to database. Refreshing your panel.",
+							borrowManagementPanel,
+							"Successfully created a borrow transaction. Refreshing your panel.",
 							"Success!",
 							JOptionPane.INFORMATION_MESSAGE);
-						setVisible(false);
-						booksCategoryManagementPanel.setCurrentPage(booksCategoryManagementPanel.getCurrentPage());
+						borrowManagementPanel.setCurrentPage(borrowManagementPanel.getCurrentPage());
 					} catch (InterruptedException | ExecutionException e) {
+						if(e.getCause() instanceof SQLIntegrityConstraintViolationException) {
+							SQLIntegrityConstraintViolationException exc = (SQLIntegrityConstraintViolationException) e.getCause();
+							if(exc.getErrorCode() == 1062) {
+								// If an error occured, show dialog and inform user.
+								JOptionPane.showMessageDialog(
+									formDialog,
+									"This user has already made a borrow for the current borrow date.",
+									"Cannot make borrow!",
+									JOptionPane.WARNING_MESSAGE);
+								return;
+							}
+						}
+						
 						// If an error occured, show dialog and inform user.
 						JOptionPane.showMessageDialog(
-							booksCategoryManagementPanel,
+							borrowManagementPanel,
 							"An error occured while trying to save to database.\n\nError: " + e.getMessage(),
 							"Database access error!",
 							JOptionPane.ERROR_MESSAGE);
@@ -524,7 +641,7 @@ public class FormDialog extends JDialog {
 			}.execute();
 			
 			// Close the dialog
-			setVisible(false);*/
+			setVisible(false);
 		});
 		jpnlButtons.add(jbtnOk);
 		getRootPane().setDefaultButton(jbtnOk);
@@ -538,14 +655,20 @@ public class FormDialog extends JDialog {
 		});
 		jpnlButtons.add(jbtnCancel);
 		/* END OF jbtnCancel */
+		
+		/* addedBookCopyComponents */
+		addedBookCopyComponents = new HashMap<>();
+		/* END OF addedBookCopyComponents */
+		
+		/* borrowItemGapRows */
+		borrowItemGapRows = new PriorityQueue<>();
+		/* END OF borrowItemGapRows */
 	}
 	
 	/**
 	 * Prepares the form for inserting a new category.
 	 */
 	public void reset() {
-		currentOperation = FormOperation.INSERT;
-		
 		jlblHeader.setText("Add Borrow");
 		
 		// Reset and fill jcmbMember with a SwingWorker thread
@@ -589,17 +712,6 @@ public class FormDialog extends JDialog {
 		// Clear all fields
 		jtxtfldBorrowedOn.setText(LocalDate.now().toString());
 		jtxtfldTargetReturnDate.setText("");
-		jtxtfldReturnedOn.setText("");
-		jtxtfldReturnFee.setText("0.00");
 	}
 	
-	/**
-	 * Prepares the form for updating an existing category.
-	 */
-	public void reset(Borrow borrow) {
-		currentOperation = FormOperation.UPDATE;
-		
-		jlblHeader.setText("Modify Borrow");
-	}
-
 }

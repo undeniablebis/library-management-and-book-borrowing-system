@@ -5,6 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record Borrow(int memberId, LocalDate borrowedOn, LocalDate targetReturnDate,
-		LocalDateTime returnedOn, String status, double returnFee, List<Item> itemList) {
+		LocalDateTime returnedOn, String status, double returnFee, List<BookCopy> itemList) {
 
 }
