@@ -549,7 +549,7 @@ public class FormDialog extends JDialog {
 			for(BookCopy bookCopy : addedBookCopyComponents.keySet())
 				borrowItemList.add(bookCopy);
 			// Create a borrow
-			Borrow borrow = new Borrow(memberId, borrowedOn, targetReturnDate, null, "STILL_BORROWING", 0.00, borrowItemList);
+			Borrow borrow = new Borrow(memberId, null, borrowedOn, targetReturnDate, null, "STILL_BORROWING", 0.00, borrowItemList);
 			
 			// Save it to database with a SwingWorker Thread in background
 			new SwingWorker<Void, Void>() {
@@ -671,6 +671,19 @@ public class FormDialog extends JDialog {
 	public void reset() {
 		jlblHeader.setText("Add Borrow");
 		
+		// Clear all fields
+		jtxtfldSearchIsbnTitle.setText("");
+		jcmbBookCopy.removeAll();
+		jbtnAddBookCopy.setEnabled(false);
+		jtxtfldBorrowedOn.setText(LocalDate.now().toString());
+		jtxtfldTargetReturnDate.setText("");
+		
+		// Remove the UI components in borrow items panel
+		for(BookCopy bookCopy : addedBookCopyComponents.keySet())
+			for(JComponent jcmpBookCopyComponent : addedBookCopyComponents.get(bookCopy))
+				jpnlBorrowItems.remove(jcmpBookCopyComponent);
+		addedBookCopyComponents.clear();
+		
 		// Reset and fill jcmbMember with a SwingWorker thread
 		jcmbMember.removeAllItems();
 		new SwingWorker<List<MemberComboBoxItem>, Void>() {
@@ -708,10 +721,6 @@ public class FormDialog extends JDialog {
 				}
 			}
 		}.execute();
-		
-		// Clear all fields
-		jtxtfldBorrowedOn.setText(LocalDate.now().toString());
-		jtxtfldTargetReturnDate.setText("");
 	}
 	
 }

@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record Borrow(int memberId, LocalDate borrowedOn, LocalDate targetReturnDate,
+public record Borrow(int memberId, String memberName, LocalDate borrowedOn, LocalDate targetReturnDate,
 		LocalDateTime returnedOn, String status, double returnFee, List<BookCopy> itemList) {
 
 }

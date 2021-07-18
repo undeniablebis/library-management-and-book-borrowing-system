@@ -28,6 +28,8 @@ import javax.swing.JTable;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
+import co.bisri.librarysystem.admin.ui.borrow.record.BookCopy;
+import co.bisri.librarysystem.admin.ui.borrow.record.Borrow;
 import co.bisri.librarysystem.admin.ui.borrow.record.BorrowTableRecord;
 import co.bisri.librarysystem.admin.ui.util.PageButtonPanel;
 
@@ -65,9 +67,14 @@ public class BorrowManagementPanel extends JPanel {
 	private PageButtonPanel pageButtonPanel;
 
 	/**
-	 * Form Dialog of this panel, for adding or updating borrows
+	 * Form Dialog of this panel, for adding borrows
 	 */
 	protected FormDialog formDialog;
+	
+	/**
+	 * Return Dialog for returning borrows
+	 */
+	protected ReturnDialog returnDialog;
 	
 	// Total number of pages available in book category table based on internal size
 	private int totalPageCount;
@@ -127,64 +134,112 @@ public class BorrowManagementPanel extends JPanel {
 		/* END OF jbtnShowAddForm */
 
 		/* jbtnUpdate - button for updating account */
-		JButton jbtnUpdate = new JButton("Update");
-		jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnUpdate.setBackground(Color.WHITE);
-		jbtnUpdate.setFont(new Font("Roboto", Font.PLAIN, 12));
-		jbtnUpdate.addActionListener((event) -> {
-			/*/ Get current selected row
-			int selectedRow = jtblBooksCategory.getSelectedRow();
+		JButton jbtnReturn = new JButton("Return");
+		jbtnReturn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		jbtnReturn.setBackground(Color.WHITE);
+		jbtnReturn.setFont(new Font("Roboto", Font.PLAIN, 12));
+		jbtnReturn.addActionListener((event) -> {
+			// Get current selected row
+			int selectedRow = jtblBorrows.getSelectedRow();
 			
 			// If no row is selected, don't proceed
 			if(selectedRow == -1) {
 				JOptionPane.showMessageDialog(
-						booksCategoryManagementPanel,
-						"Please select a record first before clicking the update button.",
+						borrowManagementPanel,
+						"Please select a record first before clicking the return button.",
 						"Select first!",
 						JOptionPane.WARNING_MESSAGE);
 				return;
 			}
 			
-			// Else, fetch the respective bookcategory from the database
-			String selectedName = (String) bookCategoryTableModel.getValueAt(selectedRow, 0);
-			BookCategory bookCategory = null;
+
+			// Get PK
+			int memberId = borrowTableModel.getMemberIdAtRow(selectedRow);
+			LocalDate borrowedOn = borrowTableModel.getBorrowDateAtRow(selectedRow);
+			
+			// Fetch respective borrow
+			Borrow borrow = null;
 			try(Connection connection = dataSource.getConnection();
-				PreparedStatement retrieveStatement = connection.prepareStatement("SELECT name, description FROM book_category WHERE name = ?")) {
+				PreparedStatement retrieveBorrowStatement =
+						connection.prepareStatement(
+								"SELECT b.member_id, m.first_name, m.last_name, b.borrowed_on, b.target_return_date, b.returned_on, b.status, b.return_fee, bi.book_isbn, bi.book_copy_no, bc.current_worth, bk.title "
+								+ "FROM borrow b "
+								+ "INNER JOIN borrow_item bi ON bi.borrow_member_id = b.member_id AND bi.borrow_borrowed_on = b.borrowed_on "
+								+ "INNER JOIN book_copy bc ON bc.isbn = bi.book_isbn AND bc.copy_no = bi.book_copy_no "
+								+ "INNER JOIN book bk ON bk.isbn = bc.isbn "
+								+ "INNER JOIN member m ON m.id = b.member_id "
+								+ "WHERE b.member_id = ? AND b.borrowed_on = ?")) {
 				
-				// Bind the name retrieved from table
-				retrieveStatement.setString(1, selectedName);
+				// Bind PK
+				retrieveBorrowStatement.setInt(1, memberId);
+				retrieveBorrowStatement.setString(2, borrowedOn.toString());
 				
-				try(ResultSet bookCategoryResultSet = retrieveStatement.executeQuery()) {
-					// If a record was found, retrieve
-					if(bookCategoryResultSet.next())
-						bookCategory = new BookCategory(
-							bookCategoryResultSet.getString("name"),
-							bookCategoryResultSet.getString("description"));
-					// If no record was found, show message dialog
-					else {
+				try(ResultSet borrowResultSet = retrieveBorrowStatement.executeQuery()) {
+					if(borrowResultSet.next()) {
+						// Parse borrow
+						LocalDate targetReturnDate = LocalDate.parse(borrowResultSet.getString("target_return_date"));
+						String memberName = borrowResultSet.getString("first_name") + " " + borrowResultSet.getString("last_name");
+						String status = borrowResultSet.getString("status");
+						
+						List<BookCopy> bookCopies = new ArrayList<>();
+						// Parse first Item
+						BookCopy firstBookCopy =
+								new BookCopy(
+										borrowResultSet.getString("book_isbn"),
+										borrowResultSet.getInt("book_copy_no"),
+										borrowResultSet.getString("title"),
+										borrowResultSet.getDouble("current_worth"));
+						bookCopies.add(firstBookCopy);
+						
+						// Parse remaining items
+						while(borrowResultSet.next()) {
+							BookCopy bookCopy =
+									new BookCopy(
+											borrowResultSet.getString("book_isbn"),
+											borrowResultSet.getInt("book_copy_no"),
+											borrowResultSet.getString("title"),
+											borrowResultSet.getDouble("current_worth"));
+							bookCopies.add(bookCopy);
+						}
+						
+						borrow = new Borrow(memberId, memberName, borrowedOn, targetReturnDate, null, status, 0.00, bookCopies);
+					} else {
+						// If no records were found, show dialog and inform user.
 						JOptionPane.showMessageDialog(
-							booksCategoryManagementPanel,
-							"No corresponding record was found.",
-							"Select first!",
+							borrowManagementPanel,
+							"No borrow found with given member id and date.",
+							"Invalid fields!",
 							JOptionPane.WARNING_MESSAGE);
 						return;
 					}
 				}
 			} catch(SQLException e) {
-				// If an exception occured, show dialog and inform user
+				// If an error occured, show dialog and inform user.
 				JOptionPane.showMessageDialog(
-					booksCategoryManagementPanel,
-					"An error occured while trying to fetch category from the database. Error: " + e.getMessage(),
-					"Error!",
+					borrowManagementPanel,
+					"An error occured while trying to fetch borrow from database.\n\nError: " + e.getMessage(),
+					"Database access error!",
 					JOptionPane.ERROR_MESSAGE);
 				return;
 			}
 			
-			// Prepare the dialog for updating entry
-			formDialog.reset(bookCategory);
-			formDialog.setVisible(true);*/
+			// Check if borrow is already returned
+			if(borrow.status().contentEquals("RETURNED")) {
+				// If borrow is already returned, dont proceed
+				JOptionPane.showMessageDialog(
+					borrowManagementPanel,
+					"This borrow is already returned.",
+					"Already returned",
+					JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+			
+			// Initialize return dialog with the retrieved borrow item
+			returnDialog.initialize(borrow);
+			// Show return dialog
+			returnDialog.setVisible(true);
 		});
-		jpnlButtonActions.add(jbtnUpdate);
+		jpnlButtonActions.add(jbtnReturn);
 		/* END OF jbtnUpdate */
 
 		/* jbtnDelete - button for deleting account */
@@ -324,6 +379,11 @@ public class BorrowManagementPanel extends JPanel {
 		formDialog = new FormDialog();
 		formDialog.borrowManagementPanel = this;
 		/* END OF formDialog */
+		
+		/* returnDialog */
+		returnDialog = new ReturnDialog();
+		returnDialog.borrowManagementPanel = this;
+		/* END OF returnDialog */
 	}
 
 	/**
