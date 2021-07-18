@@ -8,6 +8,7 @@ import co.bisri.librarysystem.admin.ui.MainFrame;
 import co.bisri.librarysystem.admin.ui.book.BooksManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcategory.BooksCategoryManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcopy.BookCopyManagementPanel;
+import co.bisri.librarysystem.admin.ui.borrow.BorrowManagementPanel;
 import co.bisri.librarysystem.admin.ui.member.MemberManagementPanel;
 
 public class LibraryManagementAndBookBorrowingSystem {
@@ -24,20 +25,23 @@ public class LibraryManagementAndBookBorrowingSystem {
 		MainFrame mainFrame = new MainFrame();
 		
 		BooksManagementPanel booksManagementPanel = new BooksManagementPanel();
+		
 		MemberManagementPanel memberManagementPanel = new MemberManagementPanel();
 		memberManagementPanel.setDataSource(dataSource);
 		
 		BooksCategoryManagementPanel booksCategoryManagementPanel = new BooksCategoryManagementPanel();
 		booksCategoryManagementPanel.setDataSource(dataSource);
 		
-		
-		
 		BookCopyManagementPanel bookCopyManagementPanel = new BookCopyManagementPanel();
+		
+		BorrowManagementPanel borrowManagementPanel = new BorrowManagementPanel();
+		borrowManagementPanel.setDataSource(dataSource);
 		
 		mainFrame.setBooksManagementPanel(booksManagementPanel);
 		mainFrame.setBooksCategoryManagementPanel(booksCategoryManagementPanel);
 		mainFrame.setBookCopyManagementPanel(bookCopyManagementPanel);
 		mainFrame.setMemberManagementPanel(memberManagementPanel);
+		mainFrame.setBorrowManagementPanel(borrowManagementPanel);
 		
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override

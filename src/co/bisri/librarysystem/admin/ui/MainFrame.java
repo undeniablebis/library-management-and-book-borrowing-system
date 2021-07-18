@@ -217,7 +217,11 @@ public class MainFrame extends JFrame {
 
 		/* jbtnBorrow */
 		JButton jbtnBorrow = new JButton("Borrow");
-
+		jbtnBorrow.addActionListener((event) -> {
+			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
+			mainContentPanelLayout.show(jpnlMainContentPanel, BORROW_MANAGEMENT_PANEL);
+			borrowManagementPanel.initializePanel();
+		});
 		jbtnBorrow.setMinimumSize(new Dimension(200, 35));
 		jbtnBorrow.setMaximumSize(new Dimension(32767, 35));
 		jbtnBorrow.setHorizontalAlignment(SwingConstants.LEFT);
