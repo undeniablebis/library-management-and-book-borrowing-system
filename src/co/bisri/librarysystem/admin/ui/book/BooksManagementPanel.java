@@ -226,7 +226,7 @@ public class BooksManagementPanel extends JPanel {
 					@Override
 					protected Void doInBackground() throws Exception {
 						try(Connection connection = dataSource.getConnection();
-							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM member WHERE id = ?")) {
+							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM book WHERE isbn = ?")) {
 							
 							// Bind the name retrieved from table
 							deleteStatement.setString(1, selectedIsbn);
@@ -242,7 +242,7 @@ public class BooksManagementPanel extends JPanel {
 							// If success, show dialog
 							JOptionPane.showMessageDialog(
 									booksManagementPanel,
-									"Successfully deleted member.",
+									"Successfully deleted book.",
 									"Success!",
 									JOptionPane.INFORMATION_MESSAGE);
 							// Update the management panel
