@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.swing.table.AbstractTableModel;
 
+import co.bisri.librarysystem.admin.ui.book.record.Books;
+
 /**
  * TableModel for Books Table in BooksCategoryManagementPanel.
  * 

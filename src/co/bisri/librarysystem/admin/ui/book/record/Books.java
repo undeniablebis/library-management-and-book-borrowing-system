@@ -1,4 +1,4 @@
-package co.bisri.librarysystem.admin.ui.book;
+package co.bisri.librarysystem.admin.ui.book.record;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

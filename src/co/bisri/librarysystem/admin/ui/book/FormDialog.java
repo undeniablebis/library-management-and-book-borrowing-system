@@ -8,11 +8,18 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -22,6 +29,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
+import co.bisri.librarysystem.admin.ui.book.record.BookCategoryComboBoxItem;
+import co.bisri.librarysystem.admin.ui.book.record.Books;
 import co.bisri.librarysystem.admin.ui.util.FormOperation;
 
 public class FormDialog extends JDialog {
@@ -40,8 +49,8 @@ public class FormDialog extends JDialog {
 	// Header label
 	private JLabel jlblHeader;
 	private JTextField jtxtfldIsbn;
-	private JTextField jtxtfldCategoryName;
 	private JTextField jtxtfldTitle;
+	private JComboBox<BookCategoryComboBoxItem> jcmbCategory;
 	private JTextField jtxtfldAuthor;
 	private JTextField jtxtfldPublisher;
 	private JTextField jtxtfldPublishedOn;
@@ -135,15 +144,13 @@ public class FormDialog extends JDialog {
 			jpnlContent.add(jlblCategoryName, gbc_jlblCategoryName);
 		}
 		{
-			jtxtfldCategoryName = new JTextField();
-			jtxtfldCategoryName.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-			GridBagConstraints gbc_jtxtfldCategoryName = new GridBagConstraints();
-			gbc_jtxtfldCategoryName.insets = new Insets(0, 0, 5, 5);
-			gbc_jtxtfldCategoryName.fill = GridBagConstraints.HORIZONTAL;
-			gbc_jtxtfldCategoryName.gridx = 1;
-			gbc_jtxtfldCategoryName.gridy = 2;
-			jpnlContent.add(jtxtfldCategoryName, gbc_jtxtfldCategoryName);
-			jtxtfldCategoryName.setColumns(10);
+			jcmbCategory = new JComboBox<>();
+			GridBagConstraints gbc_jcmbCategory = new GridBagConstraints();
+			gbc_jcmbCategory.insets = new Insets(0, 0, 5, 5);
+			gbc_jcmbCategory.fill = GridBagConstraints.HORIZONTAL;
+			gbc_jcmbCategory.gridx = 1;
+			gbc_jcmbCategory.gridy = 2;
+			jpnlContent.add(jcmbCategory, gbc_jcmbCategory);
 		}
 		{
 			JLabel jlblAuthor = new JLabel("Author");
@@ -221,7 +228,11 @@ public class FormDialog extends JDialog {
 					// Fetch data
 					String isbn = jtxtfldIsbn.getText();
 					String title = jtxtfldTitle.getText();
-					String categoryName = jtxtfldCategoryName.getText();
+					
+					// Category
+					int selectedCategoryItemIndex = jcmbCategory.getSelectedIndex();
+					String categoryName = selectedCategoryItemIndex == -1 ? null : ((BookCategoryComboBoxItem) jcmbCategory.getSelectedItem()).name();
+					
 					String author = jtxtfldAuthor.getText();
 					String publisher = jtxtfldPublisher.getText();
 					LocalDate publishedOn = null;
@@ -241,15 +252,6 @@ public class FormDialog extends JDialog {
 					if (title.contentEquals("") || title.length() > 64) {
 						JOptionPane.showMessageDialog(formDialog,
 								"Invalid value for title. Please check that it matches the ff. criteria:\n"
-										+ "- Not empty or blank\n" + "- Up to 64 characters",
-								"Invalid input.", JOptionPane.WARNING_MESSAGE);
-						return;
-					}
-
-					// Check Category name
-					if (categoryName.contentEquals("") || categoryName.length() > 64) {
-						JOptionPane.showMessageDialog(formDialog,
-								"Invalid value for category name. Please check that it matches the ff. criteria:\n"
 										+ "- Not empty or blank\n" + "- Up to 64 characters",
 								"Invalid input.", JOptionPane.WARNING_MESSAGE);
 						return;
@@ -302,7 +304,12 @@ public class FormDialog extends JDialog {
 									try(PreparedStatement booksInsertStatement = connection.prepareStatement(
 											"INSERT INTO book(isbn, category_name, title, author, published_on, publisher) VALUES(?,?,?,?,?,?)")) {
 										booksInsertStatement.setString(1, books.isbn());
-										booksInsertStatement.setString(2, books.categoryName());
+										
+										if(books.categoryName() == null)
+											booksInsertStatement.setNull(2, Types.VARCHAR);
+										else
+											booksInsertStatement.setString(2, books.categoryName());
+										
 										booksInsertStatement.setString(3, books.title());
 										booksInsertStatement.setString(4, books.author());
 										booksInsertStatement.setString(5, books.publishedOn().toString());
@@ -318,7 +325,13 @@ public class FormDialog extends JDialog {
 											"UPDATE book SET isbn = ?, category_name = ?, title = ?, author = ?, published_on = ?, "
 											+ "publisher = ? WHERE isbn = ?")) {
 										booksUpdateStatement.setString(1, books.isbn());
-										booksUpdateStatement.setString(2, books.categoryName());
+										
+										if(books.categoryName() == null)
+											booksUpdateStatement.setNull(2, Types.VARCHAR);
+										else
+											booksUpdateStatement.setString(2, books.categoryName());
+										
+										
 										booksUpdateStatement.setString(3, books.title());
 										booksUpdateStatement.setString(4, books.author());
 										booksUpdateStatement.setString(5, books.publishedOn().toString());
@@ -380,11 +393,49 @@ public class FormDialog extends JDialog {
 
 		oldBookIsbn = null;
 		jtxtfldIsbn.setText("");
-		jtxtfldCategoryName.setText("");
+		jcmbCategory.removeAllItems();
 		jtxtfldAuthor.setText("");
 		jtxtfldPublisher.setText("");
 		jtxtfldTitle.setText("");
 		jtxtfldPublishedOn.setText("");
+		
+		// Fetch all categories with a SwingWorker thread
+		// TODO: gawin mo rin sa update sa baba mamaya
+		new SwingWorker<List<BookCategoryComboBoxItem>, Void>() {
+			@Override
+			protected List<BookCategoryComboBoxItem> doInBackground() throws Exception {
+				try(Connection connection = booksManagementPanel.dataSource.getConnection();
+					Statement retrieveCategoriesStatement = connection.createStatement();
+					ResultSet categoryResultSet =
+							retrieveCategoriesStatement.executeQuery("SELECT name FROM book_category")) {
+					
+					List<BookCategoryComboBoxItem> bookCategoryItems = new ArrayList<>();
+					
+					// Iterate through sql resultset, transform into category java record
+					while(categoryResultSet.next())
+						bookCategoryItems.add(
+								new BookCategoryComboBoxItem(categoryResultSet.getString("name")));
+					
+					return bookCategoryItems;
+				}
+			}
+			@Override
+			protected void done() {
+				try {
+					List<BookCategoryComboBoxItem> bookCategoryItems = get();
+					DefaultComboBoxModel<BookCategoryComboBoxItem> categoryComboBoxModel = new DefaultComboBoxModel<>();
+					categoryComboBoxModel.addAll(bookCategoryItems);
+					jcmbCategory.setModel(categoryComboBoxModel);
+				} catch (InterruptedException | ExecutionException e) {
+					// If an error occured, show dialog and inform user.
+					JOptionPane.showMessageDialog(
+						booksManagementPanel,
+						"An error occured while trying to fetch categories.\n\nError: " + e.getMessage(),
+						"Database access error!",
+						JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		}.execute();
 	}
 	
 	/**
@@ -397,12 +448,51 @@ public class FormDialog extends JDialog {
 
 		oldBookIsbn = books.isbn();
 		jtxtfldIsbn.setText(books.isbn());
-		jtxtfldCategoryName.setText(books.categoryName());
+		//jtxtfldCategoryName.setText(books.categoryName());
 		jtxtfldAuthor.setText(books.author());
 		jtxtfldPublisher.setText(books.publisher());
 		jtxtfldTitle.setText(books.title());
 		jtxtfldPublishedOn.setText(books.publishedOn().toString());
 	
+		// Fetch all categories with a SwingWorker thread
+		new SwingWorker<List<BookCategoryComboBoxItem>, Void>() {
+			@Override
+			protected List<BookCategoryComboBoxItem> doInBackground() throws Exception {
+				try(Connection connection = booksManagementPanel.dataSource.getConnection();
+					Statement retrieveCategoriesStatement = connection.createStatement();
+					ResultSet categoryResultSet =
+							retrieveCategoriesStatement.executeQuery("SELECT name FROM book_category")) {
+					
+					List<BookCategoryComboBoxItem> bookCategoryItems = new ArrayList<>();
+					
+					// Iterate through sql resultset, transform into category java record
+					while(categoryResultSet.next())
+						bookCategoryItems.add(
+								new BookCategoryComboBoxItem(categoryResultSet.getString("name")));
+					
+					return bookCategoryItems;
+				}
+			}
+			@Override
+			protected void done() {
+				try {
+					List<BookCategoryComboBoxItem> bookCategoryItems = get();
+					DefaultComboBoxModel<BookCategoryComboBoxItem> categoryComboBoxModel = new DefaultComboBoxModel<>();
+					categoryComboBoxModel.addAll(bookCategoryItems);
+					jcmbCategory.setModel(categoryComboBoxModel);
+					
+					// set selected item
+					jcmbCategory.setSelectedItem(new BookCategoryComboBoxItem(books.categoryName()));
+				} catch (InterruptedException | ExecutionException e) {
+					// If an error occured, show dialog and inform user.
+					JOptionPane.showMessageDialog(
+						booksManagementPanel,
+						"An error occured while trying to fetch categories.\n\nError: " + e.getMessage(),
+						"Database access error!",
+						JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		}.execute();
 	}
 
 }

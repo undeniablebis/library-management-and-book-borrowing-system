@@ -27,6 +27,7 @@ import javax.swing.JTable;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
+import co.bisri.librarysystem.admin.ui.book.record.Books;
 import co.bisri.librarysystem.admin.ui.util.PageButtonPanel;
 
 public class BooksManagementPanel extends JPanel {
@@ -211,10 +212,11 @@ public class BooksManagementPanel extends JPanel {
 			}
 			
 			// Else, confirm the user, then proceed if user agrees
-			int selectedId = (int) booksTableModel.getValueAt(selectedRow, 0);
+			String selectedIsbn = (String) booksTableModel.getValueAt(selectedRow, 0);
+			String bookTitle = (String) booksTableModel.getValueAt(selectedRow, 2);
 			if(JOptionPane.showConfirmDialog(
 					booksManagementPanel,
-					"Are you sure you want to delete book named: " + selectedId + "?",
+					"Are you sure you want to delete book named: " + bookTitle + "?",
 					"Confirmation",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
@@ -227,7 +229,7 @@ public class BooksManagementPanel extends JPanel {
 							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM member WHERE id = ?")) {
 							
 							// Bind the name retrieved from table
-							deleteStatement.setInt(1, selectedId);
+							deleteStatement.setString(1, selectedIsbn);
 							// Execute delete
 							deleteStatement.execute();
 						}
