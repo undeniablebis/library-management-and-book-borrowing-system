@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -20,6 +21,7 @@ import javax.sql.DataSource;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -191,13 +193,13 @@ public class BorrowManagementPanel extends JPanel {
 		jbtnDelete.setBackground(Color.WHITE);
 		jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
 		jbtnDelete.addActionListener((event) -> {
-			/*/ Get current selected row
-			int selectedRow = jtblBooksCategory.getSelectedRow();
+			// Get current selected row
+			int selectedRow = jtblBorrows.getSelectedRow();
 			
 			// If no row is selected, don't proceed
 			if(selectedRow == -1) {
 				JOptionPane.showMessageDialog(
-						booksCategoryManagementPanel,
+						borrowManagementPanel,
 						"Please select a record first before clicking the delete button.",
 						"Select first!",
 						JOptionPane.WARNING_MESSAGE);
@@ -205,10 +207,16 @@ public class BorrowManagementPanel extends JPanel {
 			}
 			
 			// Else, confirm the user, then proceed if user agrees
-			String selectedName = (String) bookCategoryTableModel.getValueAt(selectedRow, 0);
+			
+			// Get PK
+			int memberId = borrowTableModel.getMemberIdAtRow(selectedRow);
+			LocalDate borrowedOn = borrowTableModel.getBorrowDateAtRow(selectedRow);
+			// For dialog confirmation
+			String memberName = (String) borrowTableModel.getValueAt(selectedRow, 0);
+			
 			if(JOptionPane.showConfirmDialog(
-					booksCategoryManagementPanel,
-					"Are you sure you want to delete category named: " + selectedName + "?",
+					borrowManagementPanel,
+					"Are you sure you want to delete borrow by " + memberName + " in " + borrowedOn.toString() + "?",
 					"Confirmation",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
@@ -218,10 +226,11 @@ public class BorrowManagementPanel extends JPanel {
 					@Override
 					protected Void doInBackground() throws Exception {
 						try(Connection connection = dataSource.getConnection();
-							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM book_category WHERE name = ?")) {
+							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM borrow WHERE member_id = ? AND borrowed_on = ?")) {
 							
-							// Bind the name retrieved from table
-							deleteStatement.setString(1, selectedName);
+							// Bind the PK
+							deleteStatement.setInt(1, memberId);
+							deleteStatement.setString(2, borrowedOn.toString());
 							// Execute delete
 							deleteStatement.execute();
 						}
@@ -233,8 +242,8 @@ public class BorrowManagementPanel extends JPanel {
 							get();
 							// If success, show dialog
 							JOptionPane.showMessageDialog(
-									booksCategoryManagementPanel,
-									"Successfully deleted category.",
+									borrowManagementPanel,
+									"Successfully deleted borrow.",
 									"Success!",
 									JOptionPane.INFORMATION_MESSAGE);
 							// Update the management panel
@@ -242,14 +251,14 @@ public class BorrowManagementPanel extends JPanel {
 						} catch (InterruptedException | ExecutionException e) {
 							// If an error occured, show dialog and inform user.
 							JOptionPane.showMessageDialog(
-								booksCategoryManagementPanel,
-								"An error occured while trying to delete category.\n\nError: " + e.getMessage(),
+								borrowManagementPanel,
+								"An error occured while trying to delete borrow.\n\nError: " + e.getMessage(),
 								"Database access error!",
 								JOptionPane.ERROR_MESSAGE);
 						}
 					}
 				}.execute();
-			}*/
+			}
 		});
 		jpnlButtonActions.add(jbtnDelete);
 		/* END OF jbtnDelete */
@@ -384,13 +393,14 @@ public class BorrowManagementPanel extends JPanel {
 		try(Connection connection = dataSource.getConnection();
 			Statement retrieveStatement = connection.createStatement();
 			ResultSet borrowResultSet = retrieveStatement.executeQuery(
-					"SELECT m.first_name, m.last_name, b.borrowed_on, b.target_return_date, b.returned_on, b.status, b.return_fee "
+					"SELECT m.id, m.first_name, m.last_name, b.borrowed_on, b.target_return_date, b.returned_on, b.status, b.return_fee "
 					+ "FROM borrow b "
 					+ "INNER JOIN member m ON m.id = b.member_id LIMIT " + PAGE_SIZE + " OFFSET " + offset)) {
 			
 			while(borrowResultSet.next())
 				borrowTableRecordList.add(
 						new BorrowTableRecord(
+								borrowResultSet.getInt("id"),
 								borrowResultSet.getString("first_name"),
 								borrowResultSet.getString("last_name"),
 								LocalDate.parse(borrowResultSet.getString("borrowed_on")),

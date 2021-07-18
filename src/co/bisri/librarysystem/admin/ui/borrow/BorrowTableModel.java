@@ -1,5 +1,6 @@
 package co.bisri.librarysystem.admin.ui.borrow;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -71,6 +72,14 @@ public class BorrowTableModel extends AbstractTableModel {
 		}
 		
 		return null;
+	}
+	
+	public int getMemberIdAtRow(int rowIndex) {
+		return cache.get(rowIndex).memberId();
+	}
+	
+	public LocalDate getBorrowDateAtRow(int rowIndex) {
+		return cache.get(rowIndex).borrowedOn();
 	}
 	
 	/**
