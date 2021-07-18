@@ -336,10 +336,10 @@ public class FormDialog extends JDialog {
 					}
 					
 					// Check Contact number
-					if (contactNumber.contentEquals("") || contactNumber.length() > 128) {
+					if (contactNumber.contentEquals("") || contactNumber.length() != 13) {
 						JOptionPane.showMessageDialog(formDialog,
 								"Invalid value for Contact number. Please check that it matches the ff. criteria:\n"
-										+ "- Not empty or blank\n" + "- Up to 13 characters",
+										+ "- Not empty or blank\n" + "- 13 characters",
 								"Invalid input.", JOptionPane.WARNING_MESSAGE);
 						return;
 					}
