@@ -185,6 +185,7 @@ public class MainFrame extends JFrame {
 		jbtnBookCopy.addActionListener((event) -> {
 			CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
 			mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_COPY_MANAGEMENT_PANEL);
+			bookCopyManagementPanel.initializePanel();
 		});
 
 		jbtnBookCopy.setAlignmentY(0.0f);

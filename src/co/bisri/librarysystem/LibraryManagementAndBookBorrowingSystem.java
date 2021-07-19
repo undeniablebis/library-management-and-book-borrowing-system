@@ -34,6 +34,7 @@ public class LibraryManagementAndBookBorrowingSystem {
 		booksCategoryManagementPanel.setDataSource(dataSource);
 		
 		BookCopyManagementPanel bookCopyManagementPanel = new BookCopyManagementPanel();
+		bookCopyManagementPanel.setDataSource(dataSource);
 		
 		BorrowManagementPanel borrowManagementPanel = new BorrowManagementPanel();
 		borrowManagementPanel.setDataSource(dataSource);
