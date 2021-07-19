@@ -389,7 +389,7 @@ public class FormDialog extends JDialog {
 	public void reset() {
 		currentOperation = FormOperation.INSERT;
 
-		jlblHeader.setText("Add Member");
+		jlblHeader.setText("Add Book");
 
 		oldBookIsbn = null;
 		jtxtfldIsbn.setText("");
@@ -444,7 +444,7 @@ public class FormDialog extends JDialog {
 	public void reset(Books books) {
 		currentOperation = FormOperation.UPDATE;
 
-		jlblHeader.setText("Modify Member");
+		jlblHeader.setText("Modify Book");
 
 		oldBookIsbn = books.isbn();
 		jtxtfldIsbn.setText(books.isbn());

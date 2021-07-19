@@ -216,7 +216,7 @@ public class MemberManagementPanel extends JPanel {
 			int selectedId = (int) memberTableModel.getValueAt(selectedRow, 0);
 			if(JOptionPane.showConfirmDialog(
 					memberManagementPanel,
-					"Are you sure you want to delete member named: " + selectedId + "?",
+					"Are you sure you want to delete member id: " + selectedId + "?",
 					"Confirmation",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {

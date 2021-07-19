@@ -237,21 +237,6 @@ public class MainFrame extends JFrame {
 		jbtnBorrow.setBackground(Color.BLACK);
 		jpnlSidebar.add(jbtnBorrow);
 		/* END OF jbtnBorrow */
-
-		/* jbtnBorrowItem */
-		JButton jbtnBorrowItem = new JButton("Borrow Item");
-
-		jbtnBorrowItem.setMinimumSize(new Dimension(200, 35));
-		jbtnBorrowItem.setMaximumSize(new Dimension(32767, 35));
-		jbtnBorrowItem.setHorizontalAlignment(SwingConstants.LEFT);
-		jbtnBorrowItem.setForeground(Color.WHITE);
-		jbtnBorrowItem.setFont(new Font("Roboto", Font.PLAIN, 13));
-		jbtnBorrowItem.setFocusPainted(false);
-		jbtnBorrowItem.setBorderPainted(false);
-		jbtnBorrowItem.setBorder(new EmptyBorder(0, 20, 0, 0));
-		jbtnBorrowItem.setBackground(Color.BLACK);
-		jpnlSidebar.add(jbtnBorrowItem);
-		/* END OF jbtnBorrowItem */
 	}
 
 	public void setBooksManagementPanel(BooksManagementPanel booksManagementPanel) {
