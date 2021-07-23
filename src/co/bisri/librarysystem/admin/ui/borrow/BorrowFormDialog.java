@@ -679,7 +679,7 @@ public class BorrowFormDialog extends JDialog {
 
         // Clear all fields
         jtxtfldSearchIsbnTitle.setText("");
-        jcmbBookCopy.removeAll();
+        jcmbBookCopy.removeAllItems();
         jbtnAddBookCopy.setEnabled(false);
         jtxtfldBorrowedOn.setText(LocalDate.now().toString());
         jtxtfldTargetReturnDate.setText("");

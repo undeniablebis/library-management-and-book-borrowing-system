@@ -6,4 +6,5 @@
 
 # IntelliJ
 *.iml
+/out/
 /.idea/

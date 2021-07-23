@@ -1,18 +1,15 @@
 package co.bisri.librarysystem;
 
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
-
-import co.bisri.librarysystem.admin.ui.ManagementPanel;
-import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-
 import co.bisri.librarysystem.admin.ui.MainFrame;
+import co.bisri.librarysystem.admin.ui.ManagementPanel;
 import co.bisri.librarysystem.admin.ui.book.BookManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcategory.BookCategoryManagementPanel;
 import co.bisri.librarysystem.admin.ui.bookcopy.BookCopyManagementPanel;
 import co.bisri.librarysystem.admin.ui.borrow.BorrowManagementPanel;
 import co.bisri.librarysystem.admin.ui.member.MemberManagementPanel;
+import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+
+import javax.swing.*;
 
 public class LibraryManagementAndBookBorrowingSystem {
 
