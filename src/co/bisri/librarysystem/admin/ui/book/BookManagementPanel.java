@@ -1,58 +1,61 @@
-package co.bisri.librarysystem.admin.ui.member;
+package co.bisri.librarysystem.admin.ui.book;
 
 import co.bisri.librarysystem.admin.ui.ManagementPanel;
-import co.bisri.librarysystem.admin.ui.member.record.MemberEntity;
-import co.bisri.librarysystem.admin.ui.member.record.MemberTableRecord;
+import co.bisri.librarysystem.admin.ui.book.record.BookEntity;
+import co.bisri.librarysystem.admin.ui.book.record.BookTableRecord;
+import co.bisri.librarysystem.admin.ui.bookcategory.record.BookCategoryEntity;
 
 import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Panel for managing members.
+ * Panel for managing books.
  *
  * @author Bismillah Constantino
  * @author Rian Reyes
  */
-public class MemberManagementPanel extends ManagementPanel {
+public class BookManagementPanel extends ManagementPanel {
 
     // Serial version
     private static final long serialVersionUID = 1L;
 
     // Table Model
-    private final MemberTableModel memberTableModel;
+    private BookTableModel bookTableModel;
 
     // Current table cache
-    protected List<MemberTableRecord> currentCache;
+    protected List<BookTableRecord> currentCache;
 
     // Form Dialog
-    protected MemberFormDialog memberFormDialog;
+    protected BookFormDialog bookFormDialog;
 
-    public MemberManagementPanel() {
+    public BookManagementPanel() {
         super();
 
         // Set header label
-        jlblHeader.setText("Manage Members");
+        jlblHeader.setText("Manage Books");
 
         /* jbtnShowAddForm */
         JButton jbtnAdd = new JButton("Add");
-        jbtnAdd.addActionListener((event) -> {
-            // Reset and show the form dialog
-            memberFormDialog.initialize();
-            memberFormDialog.setVisible(true);
-        });
         jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         jbtnAdd.setBackground(Color.WHITE);
-        jbtnAdd.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jbtnAdd.setFont(new Font("Roboto", Font.PLAIN, 12));
+        jbtnAdd.addActionListener((event) -> {
+            // Reset and show the form dialog
+            bookFormDialog.initialize();
+            bookFormDialog.setVisible(true);
+        });
         jpnlButtonActions.add(jbtnAdd);
         /* END OF jbtnShowAddForm */
 
         /* jbtnUpdate */
         JButton jbtnUpdate = new JButton("Update");
+        jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jbtnUpdate.setBackground(Color.WHITE);
+        jbtnUpdate.setFont(new Font("Roboto", Font.PLAIN, 12));
         jbtnUpdate.addActionListener((event) -> {
             // Get current selected row
             int selectedRow = jtblMainTable.getSelectedRow();
@@ -68,38 +71,34 @@ public class MemberManagementPanel extends ManagementPanel {
             }
 
             // Retrieve the PK from the cache
-            int id = currentCache.get(selectedRow).id();
-            MemberEntity member = null;
+            String isbn = currentCache.get(selectedRow).isbn();
+            BookEntity book = null;
 
             // Retrieve the corresponding record from the database
             try (Connection connection = getConnection();
-                 PreparedStatement retrieveMemberStatement = connection.prepareStatement(
-                         "SELECT id, first_name, last_name, address_line_1, address_line_2, address_line_3, " +
-                                 "contact_number, email_address, registered_on FROM member WHERE id = ?")) {
+                 PreparedStatement retrieveBookStatement = connection.prepareStatement(
+                         "SELECT isbn, category_name, title, author, published_on, publisher FROM book " +
+                                 "WHERE isbn = ?")) {
 
                 // Bind the PK
-                retrieveMemberStatement.setInt(1, id);
+                retrieveBookStatement.setString(1, isbn);
 
                 // Fetch the result set, extract entity
-                try (ResultSet memberResultSet = retrieveMemberStatement.executeQuery()) {
-                    if (memberResultSet.next()) {
+                try (ResultSet bookResultSet = retrieveBookStatement.executeQuery()) {
+                    if (bookResultSet.next()) {
                         // If a record was found, parse into a book category object
-                        member = new MemberEntity(
-                                memberResultSet.getInt("id"),
-                                memberResultSet.getString("first_name"),
-                                memberResultSet.getString("last_name"),
-                                memberResultSet.getString("address_line_1"),
-                                memberResultSet.getString("address_line_2"),
-                                memberResultSet.getString("address_line_3"),
-                                memberResultSet.getString("contact_number"),
-                                memberResultSet.getString("email_address"),
-                                LocalDateTime.parse(memberResultSet.getString("registered_on"),
-                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                        book = new BookEntity(
+                                bookResultSet.getString("isbn"),
+                                bookResultSet.getString("category_name"),
+                                bookResultSet.getString("title"),
+                                bookResultSet.getString("author"),
+                                LocalDate.parse(bookResultSet.getString("published_on")),
+                                bookResultSet.getString("publisher"));
                     } else {
                         // If no records were found, show an error
                         JOptionPane.showMessageDialog(
                                 this,
-                                "There was no corresponding member found. Refresh your panel.",
+                                "There was no corresponding book found. Refresh your panel.",
                                 "Retrieve error",
                                 JOptionPane.ERROR_MESSAGE);
                         return;
@@ -109,25 +108,25 @@ public class MemberManagementPanel extends ManagementPanel {
                 // If an error occurred, show message then exit
                 JOptionPane.showMessageDialog(
                         this,
-                        "An error occured while retrieving member from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                        "An error occurred while retrieving book from the database.\n\nMessage: " + e1.getLocalizedMessage(),
                         "Database connectivity error",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             // Reset and show the form dialog
-            memberFormDialog.initialize(member);
-            memberFormDialog.setVisible(true);
+            bookFormDialog.initialize(book);
+            bookFormDialog.setVisible(true);
         });
-        jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        jbtnUpdate.setBackground(Color.WHITE);
-        jbtnUpdate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         jpnlButtonActions.add(jbtnUpdate);
         /* END OF jbtnUpdate */
 
         /* jbtnDelete */
         JButton jbtnDelete = new JButton("Delete");
-        jbtnDelete.addActionListener(e -> {
+        jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jbtnDelete.setBackground(Color.WHITE);
+        jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
+        jbtnDelete.addActionListener((event) -> {
             // Get current selected row
             int selectedRow = jtblMainTable.getSelectedRow();
 
@@ -142,30 +141,30 @@ public class MemberManagementPanel extends ManagementPanel {
             }
 
             // Retrieve the PK from the cache
-            int id = currentCache.get(selectedRow).id();
+            String isbn = currentCache.get(selectedRow).isbn();
 
             // Confirm the user first
             if (JOptionPane.showConfirmDialog(
                     this,
-                    "Are you sure you want to remove member with id: " + id + "?",
-                    "Remove category",
+                    "Are you sure you want to remove book with isbn: " + isbn + "?",
+                    "Remove book",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
 
                 // Delete the corresponding record from the database
                 try (Connection connection = getConnection();
-                     PreparedStatement deleteMemberStatement = connection.prepareStatement(
-                             "DELETE FROM member WHERE id = ?")) {
+                     PreparedStatement deleteBookStatement = connection.prepareStatement(
+                             "DELETE FROM book WHERE isbn = ?")) {
 
                     // Bind the PK
-                    deleteMemberStatement.setInt(1, id);
+                    deleteBookStatement.setString(1, isbn);
                     // Execute the delete statement
-                    deleteMemberStatement.execute();
+                    deleteBookStatement.execute();
                 } catch (SQLException e1) {
                     // If an error occurred, show message then exit
                     JOptionPane.showMessageDialog(
                             this,
-                            "An error occurred while removing member from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                            "An error occurred while removing book from the database.\n\nMessage: " + e1.getLocalizedMessage(),
                             "Database connectivity error",
                             JOptionPane.ERROR_MESSAGE);
                     return;
@@ -174,28 +173,25 @@ public class MemberManagementPanel extends ManagementPanel {
                 // Show success message
                 JOptionPane.showMessageDialog(
                         this,
-                        "Successfully removed member with id: " + id,
+                        "Successfully removed book with isbn: " + isbn,
                         "Remove success",
                         JOptionPane.INFORMATION_MESSAGE);
                 // Refresh the panel
                 refreshPage();
             }
         });
-        jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        jbtnDelete.setBackground(Color.WHITE);
-        jbtnDelete.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         jpnlButtonActions.add(jbtnDelete);
         /* END OF jbtnDelete */
 
-        /* memberTableModel */
-        memberTableModel = new MemberTableModel();
-        memberTableModel.memberManagementPanel = this;
-        jtblMainTable.setModel(memberTableModel);
-        /* END OF memberTableModel */
+        /* bookTableModel */
+        bookTableModel = new BookTableModel();
+        bookTableModel.bookManagementPanel = this;
+        jtblMainTable.setModel(bookTableModel);
+        /* END OF bookTableModel */
 
         /* formDialog */
-        memberFormDialog = new MemberFormDialog();
-        memberFormDialog.memberManagementPanel = this;
+        bookFormDialog = new BookFormDialog();
+        bookFormDialog.bookManagementPanel = this;
         /* END OF formDialog */
 
         /* currentCache */
@@ -205,10 +201,11 @@ public class MemberManagementPanel extends ManagementPanel {
 
     @Override
     public void setPage(int page) {
-        // Fetch member count
+
+        // Fetch book count
         try (Connection connection = getConnection();
              Statement retrieveCountStatement = connection.createStatement();
-             ResultSet countResultSet = retrieveCountStatement.executeQuery("SELECT COUNT(id) AS record_count FROM member")) {
+             ResultSet countResultSet = retrieveCountStatement.executeQuery("SELECT COUNT(isbn) AS record_count FROM book")) {
 
             // Traverse the result set once
             countResultSet.next();
@@ -239,30 +236,24 @@ public class MemberManagementPanel extends ManagementPanel {
         // Set the current page
         currentPage = page;
 
-        // Fetch members
+        // Fetch books
         currentCache.clear();
         try (Connection connection = getConnection();
-             Statement retrieveMembersStatement = connection.createStatement();
-             ResultSet memberResultSet = retrieveMembersStatement.executeQuery(
-                     "SELECT id, first_name, last_name, address_line_1, address_line_2, address_line_3, " +
-                             "contact_number, email_address, registered_on FROM member " +
+             Statement retrieveBooksStatement = connection.createStatement();
+             ResultSet bookResultSet = retrieveBooksStatement.executeQuery(
+                     "SELECT isbn, category_name, title, author, published_on, publisher FROM book " +
                              "LIMIT " + (currentPage - 1) * PAGE_SIZE + ", " + PAGE_SIZE)) {
 
-            // Parse each row into a MemberTableRecord
-            while (memberResultSet.next()) {
+            // Parse each row into a BookTableRecord
+            while (bookResultSet.next()) {
                 currentCache.add(
-                        new MemberTableRecord(
-                                memberResultSet.getInt("id"),
-                                memberResultSet.getString("first_name"),
-                                memberResultSet.getString("last_name"),
-                                memberResultSet.getString("address_line_1"),
-                                memberResultSet.getString("address_line_2"),
-                                memberResultSet.getString("address_line_3"),
-                                memberResultSet.getString("contact_number"),
-                                memberResultSet.getString("email_address"),
-                                LocalDateTime.parse(memberResultSet.getString("registered_on"),
-                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        ));
+                        new BookTableRecord(
+                                bookResultSet.getString("isbn"),
+                                bookResultSet.getString("category_name"),
+                                bookResultSet.getString("title"),
+                                bookResultSet.getString("author"),
+                                LocalDate.parse(bookResultSet.getString("published_on")),
+                                bookResultSet.getString("publisher")));
             }
         } catch (SQLException e) {
             // If an error occurred, show message then exit
@@ -275,7 +266,7 @@ public class MemberManagementPanel extends ManagementPanel {
         }
 
         // Tell the tablemodel that the data has changed
-        memberTableModel.fireTableDataChanged();
+        bookTableModel.fireTableDataChanged();
 
         // Tell the page button panel that the page has changed
         pageButtonPanel.setTotalPageCount(totalPageCount);

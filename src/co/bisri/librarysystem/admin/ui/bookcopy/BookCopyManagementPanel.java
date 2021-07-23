@@ -1,440 +1,279 @@
 package co.bisri.librarysystem.admin.ui.bookcopy;
 
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import co.bisri.librarysystem.admin.ui.ManagementPanel;
+import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopyEntity;
+import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopyTableRecord;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-import javax.sql.DataSource;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.SwingWorker;
-import javax.swing.border.EmptyBorder;
+/**
+ * Panel for managing book copies.
+ *
+ * @author Rian Reyes
+ */
+public class BookCopyManagementPanel extends ManagementPanel {
 
-import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopy;
-import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopyTableRecord;
-import co.bisri.librarysystem.admin.ui.util.PageButtonPanel;
+    // Serial version
+    private static final long serialVersionUID = 1L;
 
-public class BookCopyManagementPanel extends JPanel {
+    // Table Model
+    private final BookCopyTableModel bookCopyTableModel;
 
-	/**
-	 * Default Serial Version UID (for serializability, not important, placed to
-	 * remove warnings)
-	 */
-	private static final long serialVersionUID = 1L;
-	
-	/**
-	 * Page Size
-	 */
-	private final int PAGE_SIZE = 20;
-	
-	/**
-	 * Main datasource
-	 */
-	protected DataSource dataSource;
-	
-	/**
-	 * The main table of this panel.
-	 */
-	private JTable jtblBookCopies;
-	
-	/**
-	 * Table Model of jtblBookCopies
-	 */
-	private BookCopyTableModel bookCopyTableModel;
-	
-	/**
-	 * Paginating page button panel.
-	 */
-	private PageButtonPanel pageButtonPanel;
+    // Current table cache
+    protected List<BookCopyTableRecord> currentCache;
 
-	/**
-	 * Form Dialog of this panel, for adding or updating categories
-	 */
-	protected FormDialog formDialog;
-	
-	// Total number of pages available in book category table based on internal size
-	private int totalPageCount;
-	// Current rendered page
-	private int currentPage;
+    // Form Dialog
+    protected BookCopyFormDialog bookCopyFormDialog;
 
-	/**
-	 * Construct the panel.
-	 */
-	public BookCopyManagementPanel() {
-		BookCopyManagementPanel bookCopyManagementPanel = this;
-		
-		// Set border to EmptyBorder for spacing
-		setBorder(new EmptyBorder(10, 10, 10, 10));
-		// Use BoxLayout to lay the internal 3 panels: Header, Table, Pagination Actions
-		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+    public BookCopyManagementPanel() {
+        super();
 
-		/* jpnlHeader - Header Panel */
-		JPanel jpnlHeader = new JPanel();
-		jpnlHeader.setAlignmentY(0.0f);
-		jpnlHeader.setAlignmentX(0.0f);
-		jpnlHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
-		jpnlHeader.setMinimumSize(new Dimension(10, 45));
-		jpnlHeader.setMaximumSize(new Dimension(32767, 55));
-		add(jpnlHeader);
-		jpnlHeader.setLayout(new BoxLayout(jpnlHeader, BoxLayout.X_AXIS));
-		/* END OF jpnlHeader */
+        // Set header label
+        jlblHeader.setText("Manage Copies");
 
-		/* jlblHeader - Header label */
-		JLabel jlblHeader = new JLabel("Manage Book Copies");
-		jlblHeader.setAlignmentY(0.0f);
-		jlblHeader.setFont(new Font("Roboto Light", Font.BOLD, 24));
-		jpnlHeader.add(jlblHeader);
-		/* END OF jlblHeader */
+        /* jbtnShowAddForm */
+        JButton jbtnAdd = new JButton("Add");
+        jbtnAdd.addActionListener((event) -> {
+            // Reset and show the form dialog
+            bookCopyFormDialog.initialize();
+            bookCopyFormDialog.setVisible(true);
+        });
+        jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jbtnAdd.setBackground(Color.WHITE);
+        jbtnAdd.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jpnlButtonActions.add(jbtnAdd);
+        /* END OF jbtnShowAddForm */
 
-		/* jpnlButtonActions - panel for buttons */
-		JPanel jpnlButtonActions = new JPanel();
-		jpnlButtonActions.setAlignmentY(0.0f);
-		jpnlButtonActions.setAlignmentX(0.0f);
-		FlowLayout fl_jpnlButtonActions = (FlowLayout) jpnlButtonActions.getLayout();
-		fl_jpnlButtonActions.setAlignment(FlowLayout.RIGHT);
-		jpnlHeader.add(jpnlButtonActions);
-		/* END OF jpnlButtonActions */
+        /* jbtnUpdate */
+        JButton jbtnUpdate = new JButton("Update");
+        jbtnUpdate.addActionListener((event) -> {
+            // Get current selected row
+            int selectedRow = jtblMainTable.getSelectedRow();
 
-		/* jbtnShowAddForm - button for adding an account */
-		JButton jbtnAdd = new JButton("Add");
-		jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnAdd.setBackground(Color.WHITE);
-		jbtnAdd.setFont(new Font("Roboto", Font.PLAIN, 12));
-		jbtnAdd.addActionListener((event) -> {
-			// Prepare the dialog for new entry
-			formDialog.reset();
-			// Show the dialog
-			formDialog.setVisible(true);
-		});
-		jpnlButtonActions.add(jbtnAdd);
-		/* END OF jbtnShowAddForm */
+            // If no row is selected, don't proceed
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please select a record first before clicking the update button.",
+                        "Select first!",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
-		/* jbtnUpdate - button for updating account */
-		JButton jbtnUpdate = new JButton("Update");
-		jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnUpdate.setBackground(Color.WHITE);
-		jbtnUpdate.setFont(new Font("Roboto", Font.PLAIN, 12));
-		jbtnUpdate.addActionListener((event) -> {
-			// Get current selected row
-			int selectedRow = jtblBookCopies.getSelectedRow();
-			
-			// If no row is selected, don't proceed
-			if(selectedRow == -1) {
-				JOptionPane.showMessageDialog(
-						bookCopyManagementPanel,
-						"Please select a record first before clicking the update button.",
-						"Select first!",
-						JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-			
-			// Else, fetch the respective bookcategory from the database
-			String selectedIsbn = bookCopyTableModel.getBookIsbnAtRow(selectedRow);
-			int selectedCopyNo = bookCopyTableModel.getCopyNoAtRow(selectedRow);
-			
-			BookCopy bookCopy = null;
-			try(Connection connection = dataSource.getConnection();
-				PreparedStatement retrieveStatement = connection.prepareStatement("SELECT date_acquired, status, current_worth, borrow_status FROM book_copy WHERE isbn = ? AND copy_no = ?")) {
-				
-				// Bind the PK
-				retrieveStatement.setString(1, selectedIsbn);
-				retrieveStatement.setInt(2, selectedCopyNo);
-				
-				try(ResultSet bookCopyResultSet = retrieveStatement.executeQuery()) {
-					// If a record was found, retrieve
-					if(bookCopyResultSet.next())
-						bookCopy = new BookCopy(
-							selectedIsbn,
-							selectedCopyNo,
-							LocalDate.parse(bookCopyResultSet.getString("date_acquired")),
-							bookCopyResultSet.getString("status"),
-							bookCopyResultSet.getDouble("current_worth"),
-							bookCopyResultSet.getString("borrow_status"));
-					// If no record was found, show message dialog
-					else {
-						JOptionPane.showMessageDialog(
-							bookCopyManagementPanel,
-							"No corresponding record was found.",
-							"Select first!",
-							JOptionPane.WARNING_MESSAGE);
-						return;
-					}
-				}
-			} catch(SQLException e) {
-				// If an exception occured, show dialog and inform user
-				JOptionPane.showMessageDialog(
-					bookCopyManagementPanel,
-					"An error occured while trying to fetch book copy from the database. Error: " + e.getMessage(),
-					"Error!",
-					JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			
-			// Prepare the dialog for updating entry
-			formDialog.reset(bookCopy);
-			formDialog.setVisible(true);
-		});
-		jpnlButtonActions.add(jbtnUpdate);
-		/* END OF jbtnUpdate */
+            // Retrieve the PK from the cache
+            String isbn = currentCache.get(selectedRow).isbn();
+            int copyNo = currentCache.get(selectedRow).copyNo();
+            BookCopyEntity bookCopy = null;
 
-		/* jbtnDelete - button for deleting account */
-		JButton jbtnDelete = new JButton("Delete");
-		jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		jbtnDelete.setBackground(Color.WHITE);
-		jbtnDelete.setFont(new Font("Roboto", Font.PLAIN, 12));
-		jbtnDelete.addActionListener((event) -> {
-			// Get current selected row
-			int selectedRow = jtblBookCopies.getSelectedRow();
-			
-			// If no row is selected, don't proceed
-			if(selectedRow == -1) {
-				JOptionPane.showMessageDialog(
-						bookCopyManagementPanel,
-						"Please select a record first before clicking the delete button.",
-						"Select first!",
-						JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-			
-			// Else, confirm the user, then proceed if user agrees
-			String selectedIsbn = bookCopyTableModel.getBookIsbnAtRow(selectedRow);
-			String selectedTitle = bookCopyTableModel.getBookTitleAtRow(selectedRow);
-			int selectedCopyNo = bookCopyTableModel.getCopyNoAtRow(selectedRow);
-			
-			if(JOptionPane.showConfirmDialog(
-					bookCopyManagementPanel,
-					"Are you sure you want to delete book copy no. " + selectedCopyNo + " of " + selectedTitle + "?",
-					"Confirmation",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
-				
-				// Use a SwingWorker thread to perform delete
-				new SwingWorker<Void, Void>() {
-					@Override
-					protected Void doInBackground() throws Exception {
-						try(Connection connection = dataSource.getConnection();
-							PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM book_copy WHERE isbn = ? AND copy_no = ?")) {
-							
-							// Bind the name retrieved from table
-							deleteStatement.setString(1, selectedIsbn);
-							deleteStatement.setInt(2, selectedCopyNo);
-							// Execute delete
-							deleteStatement.execute();
-						}
-						return null;
-					}
-					@Override
-					protected void done() {
-						try {
-							get();
-							// If success, show dialog
-							JOptionPane.showMessageDialog(
-									bookCopyManagementPanel,
-									"Successfully deleted copy.",
-									"Success!",
-									JOptionPane.INFORMATION_MESSAGE);
-							// Update the management panel
-							setCurrentPage(currentPage);
-						} catch (InterruptedException | ExecutionException e) {
-							// If an error occured, show dialog and inform user.
-							JOptionPane.showMessageDialog(
-								bookCopyManagementPanel,
-								"An error occured while trying to delete copy.\n\nError: " + e.getMessage(),
-								"Database access error!",
-								JOptionPane.ERROR_MESSAGE);
-						}
-					}
-				}.execute();
-			}
-		});
-		jpnlButtonActions.add(jbtnDelete);
-		/* END OF jbtnDelete */
+            // Retrieve the corresponding record from the database
+            try (Connection connection = getConnection();
+                 PreparedStatement retrieveCopyStatement = connection.prepareStatement(
+                         "SELECT isbn, copy_no, date_acquired, status, current_worth, borrow_status " +
+                                 "FROM book_copy WHERE isbn = ? AND copy_no = ?")) {
 
-		/* jscrlpnAccounts - Scrollable Table Panel */
-		JScrollPane jscrlpnAccounts = new JScrollPane();
-		jscrlpnAccounts.setMaximumSize(new Dimension(32767, 32767));
-		jscrlpnAccounts.setAlignmentX(0.0f);
-		jscrlpnAccounts.setAlignmentY(0.0f);
-		add(jscrlpnAccounts);
-		/* END OF jscrlpnAccounts */
+                // Bind the PK
+                retrieveCopyStatement.setString(1, isbn);
+                retrieveCopyStatement.setInt(2, copyNo);
 
-		/* jtblBookCopies - Main Panel Table */
-		jtblBookCopies = new JTable();
-		jtblBookCopies.setMaximumSize(new Dimension(32767, 32767));
-		jtblBookCopies.setRowHeight(22);
-		jtblBookCopies.setIntercellSpacing(new Dimension(4, 4));
-		jscrlpnAccounts.setViewportView(jtblBookCopies);
-		// Table Model
-		bookCopyTableModel = new BookCopyTableModel();
-		jtblBookCopies.setModel(bookCopyTableModel);
-		/* END OF jtblBooksCategory */
-		
-		/* pageButtonPanel - paginating buttons */
-		pageButtonPanel = new PageButtonPanel(
-			// ActionListener for previous button
-			(event) -> {
-				// If it's already the first page, previous button should do nothing
-				if(currentPage == 1)
-					return;
-				
-				// Else, set the current page to the previous page
-				setCurrentPage(--currentPage);
-			},
-			// ActionListener for next button
-			(event) -> {
-				// If it's already the last page, next button should do nothing
-				if(currentPage == totalPageCount)
-					return;
-				
-				// Else, set the current page to the next page
-				setCurrentPage(++currentPage);
-			},
-			// ActionListener for normal page button
-			(event) -> {
-				// Get page value of button
-				int pageNumber = Integer.parseInt(((JButton) event.getSource()).getText());
-				
-				// If current page is already rendered, then button should do nothing
-				if(currentPage == pageNumber)
-					return;
-				
-				// Else, set the current page to the clicked button's page
-				setCurrentPage(pageNumber);
-			});
-		pageButtonPanel.setMaximumSize(new Dimension(32767, 100));
-		pageButtonPanel.setAlignmentX(0.0f);
-		pageButtonPanel.setAlignmentY(0.0f);
-		add(pageButtonPanel);
-		/* END OF pageButtonPanel */
-		
-		/* formDialog */
-		formDialog = new FormDialog();
-		formDialog.bookCopyManagementPanel = this;
-		/* END OF formDialog */
-	}
+                // Fetch the result set, extract entity
+                try (ResultSet copyResultSet = retrieveCopyStatement.executeQuery()) {
+                    if (copyResultSet.next()) {
+                        // If a record was found, parse into a book copy object
+                        bookCopy = new BookCopyEntity(
+                                copyResultSet.getString("isbn"),
+                                copyResultSet.getInt("copy_no"),
+                                LocalDate.parse(copyResultSet.getString("date_acquired")),
+                                copyResultSet.getString("status"),
+                                copyResultSet.getDouble("current_worth"),
+                                copyResultSet.getString("borrow_status"));
+                    } else {
+                        // If no records were found, show an error
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "There was no corresponding book copy found. Refresh your panel.",
+                                "Retrieve error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                }
+            } catch (SQLException e1) {
+                // If an error occurred, show message then exit
+                JOptionPane.showMessageDialog(
+                        this,
+                        "An error occurred while retrieving book copy from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                        "Database connectivity error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-	/**
-	 * Sets the datasource that this panel should use
-	 * @param dataSource
-	 */
-	public void setDataSource(DataSource dataSource) {
-		this.dataSource = dataSource;
-	}
-	
-	/**
-	 * Updates the currently shown categories page
-	 * @param newPage the new page number to show
-	 */
-	public void setCurrentPage(int newPage) {
-		// Update current page
-		currentPage = newPage;
-		
-		// Use a SwingWorker to fetch row count and calculate page count
-		new SwingWorker<Integer, Void>() {
-			@Override
-			protected Integer doInBackground() throws Exception {
-				return fetchBookCopyCount();
-			}
-			@Override
-			protected void done() {
-				try {
-					totalPageCount = get();
-					pageButtonPanel.setTotalPageCount(totalPageCount);
-					pageButtonPanel.setCurrentPage(newPage);
-				} catch (InterruptedException | ExecutionException e) {
-					e.printStackTrace();
-				}
-			}
-		}.execute();
-		
-		// Use a SwingWorker to fetch all book copies on current page
-		new SwingWorker<List<BookCopyTableRecord>, Void>() {
-			@Override
-			protected List<BookCopyTableRecord> doInBackground() throws Exception {
-				return fetchBookCopies(currentPage);
-			}
-			@Override
-			protected void done() {
-				try {
-					bookCopyTableModel.updateCache(get());
-				} catch (InterruptedException | ExecutionException e) {
-					e.printStackTrace();
-				}
-			}
-		}.execute();
-	}
-	
-	/**
-	 * Get the current page displayed by this panel.
-	 */
-	public int getCurrentPage() {
-		return currentPage;
-	}
-	
-	// Fetch all book copies based on given page
-	private List<BookCopyTableRecord> fetchBookCopies(int page) {
-		int offset = (page - 1) * PAGE_SIZE;
-		
-		List<BookCopyTableRecord> bookCopyList = new ArrayList<>();
-		
-		try(Connection connection = dataSource.getConnection();
-			Statement retrieveStatement = connection.createStatement();
-			ResultSet bookCopyResultSet = retrieveStatement.executeQuery("SELECT bc.isbn, bc.copy_no, bk.title, bc.status, bc.borrow_status FROM book_copy bc INNER JOIN book bk ON bk.isbn = bc.isbn LIMIT " + PAGE_SIZE + " OFFSET " + offset)) {
-			
-			while(bookCopyResultSet.next())
-				bookCopyList.add(
-						new BookCopyTableRecord(
-								bookCopyResultSet.getString("isbn"),
-								bookCopyResultSet.getInt("copy_no"),
-								bookCopyResultSet.getString("title"),
-								bookCopyResultSet.getString("status"),
-								bookCopyResultSet.getString("borrow_status")));
-		} catch(SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return bookCopyList;
-	}
-	
-	// Fetch book copy row count
-	private int fetchBookCopyCount() {
-		try(Connection connection = dataSource.getConnection();
-			Statement retrieveStatement = connection.createStatement();
-			ResultSet countResultSet = retrieveStatement.executeQuery("SELECT COUNT(isbn) AS total_count FROM book_copy")) {
-			
-			countResultSet.next();
-			double totalCount = countResultSet.getDouble("total_count");
-			int totalPageCount = (int) Math.ceil(totalCount / PAGE_SIZE);
-			return totalPageCount;
-		} catch(SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return 0;
-	}
-	
-	/**
-	 * Shows the first page of the panel.
-	 */
-	public void initializePanel() {
-		setCurrentPage(1);
-	}
-	
+            // Reset and show the form dialog
+            bookCopyFormDialog.initialize(bookCopy);
+            bookCopyFormDialog.setVisible(true);
+        });
+        jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jbtnUpdate.setBackground(Color.WHITE);
+        jbtnUpdate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jpnlButtonActions.add(jbtnUpdate);
+        /* END OF jbtnUpdate */
+
+        /* jbtnDelete */
+        JButton jbtnDelete = new JButton("Delete");
+        jbtnDelete.addActionListener(e -> {
+            // Get current selected row
+            int selectedRow = jtblMainTable.getSelectedRow();
+
+            // If no row is selected, don't proceed
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please select a record first before clicking the delete button.",
+                        "Select first!",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Retrieve the PK from the cache
+            String isbn = currentCache.get(selectedRow).isbn();
+            int copyNo = currentCache.get(selectedRow).copyNo();
+
+            // Confirm the user first
+            if (JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to remove copy " + copyNo + " of book isbn: " + isbn + "?",
+                    "Remove book copy",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+
+                // Delete the corresponding record from the database
+                try (Connection connection = getConnection();
+                     PreparedStatement deleteCopyStatement = connection.prepareStatement(
+                             "DELETE FROM book_copy WHERE isbn = ? AND copy_no = ?")) {
+
+                    // Bind the PK
+                    deleteCopyStatement.setString(1, isbn);
+                    deleteCopyStatement.setInt(2, copyNo);
+                    // Execute the delete statement
+                    deleteCopyStatement.execute();
+                } catch (SQLException e1) {
+                    // If an error occurred, show message then exit
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "An error occurred while removing book copy from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                            "Database connectivity error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Show success message
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Successfully removed book copy " + copyNo + " with isbn: " + isbn,
+                        "Remove success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                // Refresh the panel
+                refreshPage();
+            }
+        });
+        jbtnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jbtnDelete.setBackground(Color.WHITE);
+        jbtnDelete.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jpnlButtonActions.add(jbtnDelete);
+        /* END OF jbtnDelete */
+
+        /* bookCopyTableModel */
+        bookCopyTableModel = new BookCopyTableModel();
+        bookCopyTableModel.bookCopyManagementPanel = this;
+        jtblMainTable.setModel(bookCopyTableModel);
+        /* END OF memberTableModel */
+
+        /* formDialog */
+        bookCopyFormDialog = new BookCopyFormDialog();
+        bookCopyFormDialog.bookCopyManagementPanel = this;
+        /* END OF formDialog */
+
+        /* currentCache */
+        currentCache = new ArrayList<>();
+        /* END OF currentCache */
+    }
+
+    @Override
+    public void setPage(int page) {
+
+        // Fetch book copy count
+        try (Connection connection = getConnection();
+             Statement retrieveCountStatement = connection.createStatement();
+             ResultSet countResultSet = retrieveCountStatement.executeQuery("SELECT COUNT(isbn) AS record_count FROM book_copy")) {
+
+            // Traverse the result set once
+            countResultSet.next();
+
+            // Calculate the page count based on how many records are in the database, by page size
+            int totalRecordCount = countResultSet.getInt("record_count");
+            totalPageCount = (int) Math.ceil((double) totalRecordCount / PAGE_SIZE);
+        } catch (SQLException e) {
+            // If an error occurred, show message then exit
+            JOptionPane.showMessageDialog(
+                    this,
+                    "An error occurred while interacting with the database.\n\nMessage: " + e.getLocalizedMessage(),
+                    "Database connectivity error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Check if the given page value is valid
+        if (page < 1 || page > totalPageCount) {
+            // Display error message
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Invalid page to display.",
+                    "Data paging error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // Set the current page
+        currentPage = page;
+
+        // Fetch book categories
+        currentCache.clear();
+        try (Connection connection = getConnection();
+             Statement retrieveCopiesStatement = connection.createStatement();
+             ResultSet copyResultSet = retrieveCopiesStatement.executeQuery(
+                     "SELECT bc.isbn, bc.copy_no, b.title, bc.status, bc.borrow_status FROM book_copy bc " +
+                             "INNER JOIN book b ON b.isbn = bc.isbn " +
+                             "LIMIT " + (currentPage - 1) * PAGE_SIZE + ", " + PAGE_SIZE)) {
+
+            // Parse each row into a BookCopyTableRecord
+            while (copyResultSet.next()) {
+                currentCache.add(
+                        new BookCopyTableRecord(
+                                copyResultSet.getString("isbn"),
+                                copyResultSet.getInt("copy_no"),
+                                copyResultSet.getString("title"),
+                                copyResultSet.getString("status"),
+                                copyResultSet.getString("borrow_status")));
+            }
+        } catch (SQLException e) {
+            // If an error occurred, show message then exit
+            JOptionPane.showMessageDialog(
+                    this,
+                    "An error occurred while interacting with the database.\n\nMessage: " + e.getLocalizedMessage(),
+                    "Database connectivity error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Tell the tablemodel that the data has changed
+        bookCopyTableModel.fireTableDataChanged();
+
+        // Tell the page button panel that the page has changed
+        pageButtonPanel.setTotalPageCount(totalPageCount);
+        pageButtonPanel.setCurrentPage(currentPage);
+    }
+
 }
 	

@@ -1,49 +1,47 @@
-package co.bisri.librarysystem.admin.ui.member;
+package co.bisri.librarysystem.admin.ui.bookcategory;
 
 import co.bisri.librarysystem.admin.ui.ManagementPanel;
-import co.bisri.librarysystem.admin.ui.member.record.MemberEntity;
-import co.bisri.librarysystem.admin.ui.member.record.MemberTableRecord;
+import co.bisri.librarysystem.admin.ui.bookcategory.record.BookCategoryEntity;
+import co.bisri.librarysystem.admin.ui.bookcategory.record.BookCategoryTableRecord;
 
 import javax.swing.*;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Panel for managing members.
+ * Panel for managing book categories.
  *
- * @author Bismillah Constantino
  * @author Rian Reyes
  */
-public class MemberManagementPanel extends ManagementPanel {
+public class BookCategoryManagementPanel extends ManagementPanel {
 
     // Serial version
     private static final long serialVersionUID = 1L;
 
     // Table Model
-    private final MemberTableModel memberTableModel;
+    private final BookCategoryTableModel bookCategoryTableModel;
 
     // Current table cache
-    protected List<MemberTableRecord> currentCache;
+    protected List<BookCategoryTableRecord> currentCache;
 
     // Form Dialog
-    protected MemberFormDialog memberFormDialog;
+    protected BookCategoryFormDialog bookCategoryFormDialog;
 
-    public MemberManagementPanel() {
+    public BookCategoryManagementPanel() {
         super();
 
         // Set header label
-        jlblHeader.setText("Manage Members");
+        jlblHeader.setText("Manage Categories");
 
         /* jbtnShowAddForm */
         JButton jbtnAdd = new JButton("Add");
-        jbtnAdd.addActionListener((event) -> {
+        jbtnAdd.addActionListener(e -> {
             // Reset and show the form dialog
-            memberFormDialog.initialize();
-            memberFormDialog.setVisible(true);
+            bookCategoryFormDialog.initialize();
+            bookCategoryFormDialog.setVisible(true);
         });
         jbtnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         jbtnAdd.setBackground(Color.WHITE);
@@ -53,7 +51,7 @@ public class MemberManagementPanel extends ManagementPanel {
 
         /* jbtnUpdate */
         JButton jbtnUpdate = new JButton("Update");
-        jbtnUpdate.addActionListener((event) -> {
+        jbtnUpdate.addActionListener(e -> {
             // Get current selected row
             int selectedRow = jtblMainTable.getSelectedRow();
 
@@ -68,38 +66,29 @@ public class MemberManagementPanel extends ManagementPanel {
             }
 
             // Retrieve the PK from the cache
-            int id = currentCache.get(selectedRow).id();
-            MemberEntity member = null;
+            String name = currentCache.get(selectedRow).name();
+            BookCategoryEntity bookCategory = null;
 
             // Retrieve the corresponding record from the database
             try (Connection connection = getConnection();
-                 PreparedStatement retrieveMemberStatement = connection.prepareStatement(
-                         "SELECT id, first_name, last_name, address_line_1, address_line_2, address_line_3, " +
-                                 "contact_number, email_address, registered_on FROM member WHERE id = ?")) {
+                 PreparedStatement retrieveCategoryStatement = connection.prepareStatement(
+                         "SELECT name, description FROM book_category WHERE name = ?")) {
 
                 // Bind the PK
-                retrieveMemberStatement.setInt(1, id);
+                retrieveCategoryStatement.setString(1, name);
 
                 // Fetch the result set, extract entity
-                try (ResultSet memberResultSet = retrieveMemberStatement.executeQuery()) {
-                    if (memberResultSet.next()) {
+                try (ResultSet categoryResultSet = retrieveCategoryStatement.executeQuery()) {
+                    if (categoryResultSet.next()) {
                         // If a record was found, parse into a book category object
-                        member = new MemberEntity(
-                                memberResultSet.getInt("id"),
-                                memberResultSet.getString("first_name"),
-                                memberResultSet.getString("last_name"),
-                                memberResultSet.getString("address_line_1"),
-                                memberResultSet.getString("address_line_2"),
-                                memberResultSet.getString("address_line_3"),
-                                memberResultSet.getString("contact_number"),
-                                memberResultSet.getString("email_address"),
-                                LocalDateTime.parse(memberResultSet.getString("registered_on"),
-                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                        bookCategory = new BookCategoryEntity(
+                                categoryResultSet.getString("name"),
+                                categoryResultSet.getString("description"));
                     } else {
                         // If no records were found, show an error
                         JOptionPane.showMessageDialog(
                                 this,
-                                "There was no corresponding member found. Refresh your panel.",
+                                "There was no corresponding category found. Refresh your panel.",
                                 "Retrieve error",
                                 JOptionPane.ERROR_MESSAGE);
                         return;
@@ -109,15 +98,15 @@ public class MemberManagementPanel extends ManagementPanel {
                 // If an error occurred, show message then exit
                 JOptionPane.showMessageDialog(
                         this,
-                        "An error occured while retrieving member from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                        "An error occurred while retrieving category from the database.\n\nMessage: " + e1.getLocalizedMessage(),
                         "Database connectivity error",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             // Reset and show the form dialog
-            memberFormDialog.initialize(member);
-            memberFormDialog.setVisible(true);
+            bookCategoryFormDialog.initialize(bookCategory);
+            bookCategoryFormDialog.setVisible(true);
         });
         jbtnUpdate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         jbtnUpdate.setBackground(Color.WHITE);
@@ -142,30 +131,30 @@ public class MemberManagementPanel extends ManagementPanel {
             }
 
             // Retrieve the PK from the cache
-            int id = currentCache.get(selectedRow).id();
+            String name = currentCache.get(selectedRow).name();
 
             // Confirm the user first
             if (JOptionPane.showConfirmDialog(
                     this,
-                    "Are you sure you want to remove member with id: " + id + "?",
+                    "Are you sure you want to remove category with name: " + name + "?",
                     "Remove category",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
 
                 // Delete the corresponding record from the database
                 try (Connection connection = getConnection();
-                     PreparedStatement deleteMemberStatement = connection.prepareStatement(
-                             "DELETE FROM member WHERE id = ?")) {
+                     PreparedStatement deleteCategoryStatement = connection.prepareStatement(
+                             "DELETE FROM book_category WHERE name = ?")) {
 
                     // Bind the PK
-                    deleteMemberStatement.setInt(1, id);
+                    deleteCategoryStatement.setString(1, name);
                     // Execute the delete statement
-                    deleteMemberStatement.execute();
+                    deleteCategoryStatement.execute();
                 } catch (SQLException e1) {
                     // If an error occurred, show message then exit
                     JOptionPane.showMessageDialog(
                             this,
-                            "An error occurred while removing member from the database.\n\nMessage: " + e1.getLocalizedMessage(),
+                            "An error occurred while removing category from the database.\n\nMessage: " + e1.getLocalizedMessage(),
                             "Database connectivity error",
                             JOptionPane.ERROR_MESSAGE);
                     return;
@@ -174,7 +163,7 @@ public class MemberManagementPanel extends ManagementPanel {
                 // Show success message
                 JOptionPane.showMessageDialog(
                         this,
-                        "Successfully removed member with id: " + id,
+                        "Successfully removed category with name: " + name,
                         "Remove success",
                         JOptionPane.INFORMATION_MESSAGE);
                 // Refresh the panel
@@ -187,16 +176,21 @@ public class MemberManagementPanel extends ManagementPanel {
         jpnlButtonActions.add(jbtnDelete);
         /* END OF jbtnDelete */
 
-        /* memberTableModel */
-        memberTableModel = new MemberTableModel();
-        memberTableModel.memberManagementPanel = this;
-        jtblMainTable.setModel(memberTableModel);
-        /* END OF memberTableModel */
+        /* bookCategoryTableModel */
+        bookCategoryTableModel = new BookCategoryTableModel();
+        bookCategoryTableModel.bookCategoryManagementPanel = this;
+        jtblMainTable.setModel(bookCategoryTableModel);
 
-        /* formDialog */
-        memberFormDialog = new MemberFormDialog();
-        memberFormDialog.memberManagementPanel = this;
-        /* END OF formDialog */
+        // Column width configuration
+        TableColumn nameColumn = jtblMainTable.getColumnModel().getColumn(0);
+        nameColumn.setMaxWidth(160);
+        nameColumn.setPreferredWidth(160);
+        /* END OF bookCategoryTableModel */
+
+        /* bookCategoryFormDialog */
+        bookCategoryFormDialog = new BookCategoryFormDialog();
+        bookCategoryFormDialog.bookCategoryManagementPanel = this;
+        /* END OF bookCategoryFormDialog */
 
         /* currentCache */
         currentCache = new ArrayList<>();
@@ -205,10 +199,11 @@ public class MemberManagementPanel extends ManagementPanel {
 
     @Override
     public void setPage(int page) {
-        // Fetch member count
+
+        // Fetch category count
         try (Connection connection = getConnection();
              Statement retrieveCountStatement = connection.createStatement();
-             ResultSet countResultSet = retrieveCountStatement.executeQuery("SELECT COUNT(id) AS record_count FROM member")) {
+             ResultSet countResultSet = retrieveCountStatement.executeQuery("SELECT COUNT(name) AS record_count FROM book_category")) {
 
             // Traverse the result set once
             countResultSet.next();
@@ -239,30 +234,20 @@ public class MemberManagementPanel extends ManagementPanel {
         // Set the current page
         currentPage = page;
 
-        // Fetch members
+        // Fetch book categories
         currentCache.clear();
         try (Connection connection = getConnection();
-             Statement retrieveMembersStatement = connection.createStatement();
-             ResultSet memberResultSet = retrieveMembersStatement.executeQuery(
-                     "SELECT id, first_name, last_name, address_line_1, address_line_2, address_line_3, " +
-                             "contact_number, email_address, registered_on FROM member " +
+             Statement retrieveCategoriesStatement = connection.createStatement();
+             ResultSet categoryResultSet = retrieveCategoriesStatement.executeQuery(
+                     "SELECT name, description FROM book_category " +
                              "LIMIT " + (currentPage - 1) * PAGE_SIZE + ", " + PAGE_SIZE)) {
 
-            // Parse each row into a MemberTableRecord
-            while (memberResultSet.next()) {
+            // Parse each row into a BookCategoryTableRecord
+            while (categoryResultSet.next()) {
                 currentCache.add(
-                        new MemberTableRecord(
-                                memberResultSet.getInt("id"),
-                                memberResultSet.getString("first_name"),
-                                memberResultSet.getString("last_name"),
-                                memberResultSet.getString("address_line_1"),
-                                memberResultSet.getString("address_line_2"),
-                                memberResultSet.getString("address_line_3"),
-                                memberResultSet.getString("contact_number"),
-                                memberResultSet.getString("email_address"),
-                                LocalDateTime.parse(memberResultSet.getString("registered_on"),
-                                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        ));
+                        new BookCategoryTableRecord(
+                                categoryResultSet.getString("name"),
+                                categoryResultSet.getString("description")));
             }
         } catch (SQLException e) {
             // If an error occurred, show message then exit
@@ -275,7 +260,7 @@ public class MemberManagementPanel extends ManagementPanel {
         }
 
         // Tell the tablemodel that the data has changed
-        memberTableModel.fireTableDataChanged();
+        bookCategoryTableModel.fireTableDataChanged();
 
         // Tell the page button panel that the page has changed
         pageButtonPanel.setTotalPageCount(totalPageCount);
@@ -283,3 +268,4 @@ public class MemberManagementPanel extends ManagementPanel {
     }
 
 }
+	
