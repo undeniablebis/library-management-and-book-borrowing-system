@@ -42,7 +42,7 @@ public class MainFrame extends JFrame {
          */
         jpnlSidebar = new JPanel();
         jpnlSidebar.setBorder(null);
-        jpnlSidebar.setBackground(SystemColor.desktop);
+        jpnlSidebar.setBackground(Color.BLACK);
         jpnlSidebar.setMaximumSize(new Dimension(225, 32767));
         jpnlSidebar.setMinimumSize(new Dimension(225, 10));
         jpnlSidebar.setLayout(new BoxLayout(jpnlSidebar, BoxLayout.Y_AXIS));
@@ -89,7 +89,7 @@ public class MainFrame extends JFrame {
     public void setManagementPanels(ManagementPanel[] managementPanels) {
         this.managementPanels = managementPanels;
 
-        for (int i = 0; i < managementPanels.length; i++) {
+        for (int i = 0; i < this.managementPanels.length; i++) {
             // Panel Index for CardLayout
             final int panelIndex = i;
 

@@ -267,6 +267,7 @@ public class BorrowReturnDialog extends JDialog {
 
         /* jpnlButtons */
         JPanel jpnlButtons = new JPanel();
+        jpnlButtons.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
         jpnlButtons.setLayout(new FlowLayout(FlowLayout.RIGHT));
         getContentPane().add(jpnlButtons, BorderLayout.SOUTH);
         /* END OF jpnlButtons */
@@ -367,6 +368,8 @@ public class BorrowReturnDialog extends JDialog {
             // Close the dialog
             setVisible(false);
         });
+        jbtnOk.setBackground(Color.WHITE);
+        jbtnOk.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         jpnlButtons.add(jbtnOk);
         getRootPane().setDefaultButton(jbtnOk);
         /* END OF jbtnOk */
@@ -377,6 +380,8 @@ public class BorrowReturnDialog extends JDialog {
         jbtnCancel.addActionListener((event) -> {
             setVisible(false);
         });
+        jbtnCancel.setBackground(Color.WHITE);
+        jbtnCancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         jpnlButtons.add(jbtnCancel);
         /* END OF jbtnCancel */
 
