@@ -1,23 +1,15 @@
 package co.bisri.librarysystem.admin.ui.book;
 
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Font;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
-
 import co.bisri.librarysystem.admin.ui.ManagementPanel;
 import co.bisri.librarysystem.admin.ui.book.record.BookEntity;
 import co.bisri.librarysystem.admin.ui.book.record.BookTableRecord;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Panel for managing books.
@@ -231,7 +223,9 @@ public class BookManagementPanel extends ManagementPanel {
         }
 
         // Check if the given page value is valid
-        if (page < 1 || page > totalPageCount) {
+        if(totalPageCount == 0) {
+            return;
+        } else if (page < 1 || page > totalPageCount) {
             // Display error message
             JOptionPane.showMessageDialog(
                     this,

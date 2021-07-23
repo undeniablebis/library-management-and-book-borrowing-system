@@ -222,7 +222,9 @@ public class BookCategoryManagementPanel extends ManagementPanel {
         }
 
         // Check if the given page value is valid
-        if (page < 1 || page > totalPageCount) {
+        if(totalPageCount == 0) {
+            return;
+        } else if (page < 1 || page > totalPageCount) {
             // Display error message
             JOptionPane.showMessageDialog(
                     this,
