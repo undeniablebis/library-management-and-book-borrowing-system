@@ -4,6 +4,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import co.bisri.librarysystem.admin.ui.ManagementPanel;
 import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
 
 import co.bisri.librarysystem.admin.ui.MainFrame;
@@ -16,7 +17,6 @@ import co.bisri.librarysystem.admin.ui.member.MemberManagementPanel;
 public class LibraryManagementAndBookBorrowingSystem {
 
     public static void main(String[] args) {
-
         // MySQL DataSource object
         MysqlConnectionPoolDataSource dataSource = new MysqlConnectionPoolDataSource();
         dataSource.setDatabaseName("library_db");
@@ -24,47 +24,27 @@ public class LibraryManagementAndBookBorrowingSystem {
         dataSource.setPassword("library123");
         // END: MySQL DataSource object
 
+        // Main Frame
         MainFrame mainFrame = new MainFrame();
 
-        BookManagementPanel booksManagementPanel = new BookManagementPanel();
-        booksManagementPanel.setDataSource(dataSource);
+        // Management Panels
+        ManagementPanel[] managementPanels = new ManagementPanel[5];
+        managementPanels[0] = new BookManagementPanel();
+        managementPanels[1] = new MemberManagementPanel();
+        managementPanels[2] = new BookCategoryManagementPanel();
+        managementPanels[3] = new BookCopyManagementPanel();
+        managementPanels[4] = new BorrowManagementPanel();
 
-        MemberManagementPanel memberManagementPanel = new MemberManagementPanel();
-        memberManagementPanel.setDataSource(dataSource);
+        // Set the datasource of all management panels
+        for(ManagementPanel managementPanel : managementPanels)
+            managementPanel.setDataSource(dataSource);
 
-        BookCategoryManagementPanel bookCategoryManagementPanel = new BookCategoryManagementPanel();
-        bookCategoryManagementPanel.setDataSource(dataSource);
+        // Wire all management panels to the main frame
+        mainFrame.setManagementPanels(managementPanels);
 
-        BookCopyManagementPanel bookCopyManagementPanel = new BookCopyManagementPanel();
-        bookCopyManagementPanel.setDataSource(dataSource);
-
-        BorrowManagementPanel borrowManagementPanel = new BorrowManagementPanel();
-        borrowManagementPanel.setDataSource(dataSource);
-
-        mainFrame.setBooksManagementPanel(booksManagementPanel);
-        mainFrame.setBooksCategoryManagementPanel(bookCategoryManagementPanel);
-        mainFrame.setBookCopyManagementPanel(bookCopyManagementPanel);
-        mainFrame.setMemberManagementPanel(memberManagementPanel);
-        mainFrame.setBorrowManagementPanel(borrowManagementPanel);
-        
-        // Set nimbus look and feel
-        try {
-            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            // If Nimbus is not available, you can set the GUI to another look and feel.
-        }
-
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                // Show the entry frame.
-                mainFrame.setVisible(true);
-            }
+        // Show the frame on the event dispatch thread.
+        SwingUtilities.invokeLater(() -> {
+            mainFrame.setVisible(true);
         });
     }
 

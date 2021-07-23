@@ -1,66 +1,25 @@
 package co.bisri.librarysystem.admin.ui;
 
-import co.bisri.librarysystem.admin.ui.book.BookManagementPanel;
-import co.bisri.librarysystem.admin.ui.bookcategory.BookCategoryManagementPanel;
-import co.bisri.librarysystem.admin.ui.bookcopy.BookCopyManagementPanel;
-import co.bisri.librarysystem.admin.ui.borrow.BorrowManagementPanel;
-import co.bisri.librarysystem.admin.ui.member.MemberManagementPanel;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class MainFrame extends JFrame {
 
-    /*
-     * String constants for CardLayout traversal
-     */
-    private static final String BOOK_MANAGEMENT_PANEL = "BOOK";
-    private static final String BOOK_CATEGORY_MANAGEMENT_PANEL = "BOOK CATEGORY";
-    private static final String BOOK_COPY_MANAGEMENT_PANEL = "BOOK COPY";
-    private static final String BORROW_MANAGEMENT_PANEL = "BORROW";
-    private static final String MEMBER_MANAGEMENT_PANEL = "MEMBER";
-
-
-    /**
-     * Ignore for now, this is to avoid warnings.
-     */
+    // Serial version
     private static final long serialVersionUID = 1L;
 
-    /**
-     * Custom content pane for this Frame
-     */
+    // Custom content panel
     private final JPanel jpnlContentPane;
 
-    /**
-     * The main content panel, uses a CardLayout
-     */
+    // Sidebar panel
+    private JPanel jpnlSidebar;
+
+    // Main content panel
     private final JPanel jpnlMainContentPanel;
 
-    /**
-     * Books Management Panel of this module.
-     */
-    private BookManagementPanel booksManagementPanel;
-
-    /**
-     * Books Category Management Panel of this module.
-     */
-    private BookCategoryManagementPanel booksCategoryManagementPanel;
-
-    /**
-     * Books Copy Management Panel of this module.
-     */
-    private BookCopyManagementPanel bookCopyManagementPanel;
-
-    /**
-     * Borrow Management Panel of this module.
-     */
-    private BorrowManagementPanel borrowManagementPanel;
-
-    /**
-     * Member Management Panel of this module.
-     */
-    private MemberManagementPanel memberManagementPanel;
+    // All management panels
+    private ManagementPanel[] managementPanels;
 
     public MainFrame() {
         setForeground(SystemColor.activeCaptionText);
@@ -81,7 +40,7 @@ public class MainFrame extends JFrame {
          * jpnlSidebar - sidebar panel shown on the left, uses BoxLayout to lay its
          * components
          */
-        JPanel jpnlSidebar = new JPanel();
+        jpnlSidebar = new JPanel();
         jpnlSidebar.setBorder(null);
         jpnlSidebar.setBackground(SystemColor.desktop);
         jpnlSidebar.setMaximumSize(new Dimension(225, 32767));
@@ -120,135 +79,42 @@ public class MainFrame extends JFrame {
 
         // Spacing for the sidebar before the buttons
         jpnlSidebar.add(Box.createRigidArea(new Dimension(0, 50)));
-
-        /* jbtnBookCategory -- Button for Book Category panel */
-        JButton jbtnBookCategory = new JButton("Book Category");
-
-        jbtnBookCategory.addActionListener((event) -> {
-            CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
-            mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_CATEGORY_MANAGEMENT_PANEL);
-            booksCategoryManagementPanel.firstPage();
-        });
-
-        jbtnBookCategory.setAlignmentY(0.0f);
-        jbtnBookCategory.setHorizontalAlignment(SwingConstants.LEFT);
-        jbtnBookCategory.setMinimumSize(new Dimension(200, 40));
-        jbtnBookCategory.setFont(new Font("Roboto", Font.PLAIN, 13));
-        jbtnBookCategory.setForeground(Color.WHITE);
-        jbtnBookCategory.setBackground(Color.BLACK);
-        jbtnBookCategory.setBorder(new EmptyBorder(0, 20, 0, 20));
-        jbtnBookCategory.setFocusPainted(false);
-        jbtnBookCategory.setBorderPainted(false);
-        jbtnBookCategory.setMaximumSize(new Dimension(32767, 40));
-        jpnlSidebar.add(jbtnBookCategory);
-        /* END OF jbtnBookCategory */
-
-        /* jbtnBook -- Button for Book */
-        JButton jbtnBook = new JButton("Book");
-
-        jbtnBook.addActionListener((event) -> {
-            CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
-            mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_MANAGEMENT_PANEL);
-            booksManagementPanel.firstPage();
-        });
-
-        jbtnBook.setAlignmentY(0.0f);
-        jbtnBook.setMinimumSize(new Dimension(200, 40));
-        jbtnBook.setMaximumSize(new Dimension(32767, 40));
-        jbtnBook.setHorizontalAlignment(SwingConstants.LEFT);
-        jbtnBook.setForeground(Color.WHITE);
-        jbtnBook.setFont(new Font("Roboto", Font.PLAIN, 13));
-        jbtnBook.setFocusPainted(false);
-        jbtnBook.setBorderPainted(false);
-        jbtnBook.setBorder(new EmptyBorder(0, 20, 0, 20));
-        jbtnBook.setBackground(Color.BLACK);
-        jpnlSidebar.add(jbtnBook);
-        /* END OF jbtnBook */
-
-        /* jbtnBookCopy */
-        JButton jbtnBookCopy = new JButton("Book Copy");
-
-        jbtnBookCopy.addActionListener((event) -> {
-            CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
-            mainContentPanelLayout.show(jpnlMainContentPanel, BOOK_COPY_MANAGEMENT_PANEL);
-            bookCopyManagementPanel.firstPage();
-        });
-
-        jbtnBookCopy.setAlignmentY(0.0f);
-        jbtnBookCopy.setMinimumSize(new Dimension(200, 40));
-        jbtnBookCopy.setMaximumSize(new Dimension(32767, 40));
-        jbtnBookCopy.setHorizontalAlignment(SwingConstants.LEFT);
-        jbtnBookCopy.setForeground(Color.WHITE);
-        jbtnBookCopy.setFont(new Font("Roboto", Font.PLAIN, 13));
-        jbtnBookCopy.setFocusPainted(false);
-        jbtnBookCopy.setBorderPainted(false);
-        jbtnBookCopy.setBorder(new EmptyBorder(0, 20, 0, 20));
-        jbtnBookCopy.setBackground(Color.BLACK);
-        jpnlSidebar.add(jbtnBookCopy);
-        /* END OF jbtnBookCopy */
-
-        /* jbtnMember */
-        JButton jbtnMember = new JButton("Member");
-        jbtnMember.addActionListener((event) -> {
-            CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
-            mainContentPanelLayout.show(jpnlMainContentPanel, MEMBER_MANAGEMENT_PANEL);
-            memberManagementPanel.firstPage();
-        });
-        jbtnMember.setMinimumSize(new Dimension(200, 35));
-        jbtnMember.setMaximumSize(new Dimension(32767, 35));
-        jbtnMember.setHorizontalAlignment(SwingConstants.LEFT);
-        jbtnMember.setForeground(Color.WHITE);
-        jbtnMember.setFont(new Font("Roboto", Font.PLAIN, 13));
-        jbtnMember.setFocusPainted(false);
-        jbtnMember.setBorderPainted(false);
-        jbtnMember.setBorder(new EmptyBorder(0, 20, 0, 0));
-        jbtnMember.setBackground(Color.BLACK);
-        jpnlSidebar.add(jbtnMember);
-        /* END OF jbtnMember */
-
-        /* jbtnBorrow */
-        JButton jbtnBorrow = new JButton("Borrow");
-        jbtnBorrow.addActionListener((event) -> {
-            CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
-            mainContentPanelLayout.show(jpnlMainContentPanel, BORROW_MANAGEMENT_PANEL);
-            borrowManagementPanel.firstPage();
-        });
-        jbtnBorrow.setMinimumSize(new Dimension(200, 35));
-        jbtnBorrow.setMaximumSize(new Dimension(32767, 35));
-        jbtnBorrow.setHorizontalAlignment(SwingConstants.LEFT);
-        jbtnBorrow.setForeground(Color.WHITE);
-        jbtnBorrow.setFont(new Font("Roboto", Font.PLAIN, 13));
-        jbtnBorrow.setFocusPainted(false);
-        jbtnBorrow.setBorderPainted(false);
-        jbtnBorrow.setBorder(new EmptyBorder(0, 20, 0, 0));
-        jbtnBorrow.setBackground(Color.BLACK);
-        jpnlSidebar.add(jbtnBorrow);
-        /* END OF jbtnBorrow */
     }
 
-    public void setBooksManagementPanel(BookManagementPanel booksManagementPanel) {
-        this.booksManagementPanel = booksManagementPanel;
-        jpnlMainContentPanel.add(booksManagementPanel, BOOK_MANAGEMENT_PANEL);
-    }
+    /**
+     * Initializes the management panels of this frame.
+     *
+     * @param managementPanels
+     */
+    public void setManagementPanels(ManagementPanel[] managementPanels) {
+        this.managementPanels = managementPanels;
 
-    public void setBooksCategoryManagementPanel(BookCategoryManagementPanel booksCategoryManagementPanel) {
-        this.booksCategoryManagementPanel = booksCategoryManagementPanel;
-        jpnlMainContentPanel.add(booksCategoryManagementPanel, BOOK_CATEGORY_MANAGEMENT_PANEL);
-    }
+        for (int i = 0; i < managementPanels.length; i++) {
+            // Panel Index for CardLayout
+            final int panelIndex = i;
 
-    public void setBookCopyManagementPanel(BookCopyManagementPanel bookCopyManagementPanel) {
-        this.bookCopyManagementPanel = bookCopyManagementPanel;
-        jpnlMainContentPanel.add(bookCopyManagementPanel, BOOK_COPY_MANAGEMENT_PANEL);
-    }
+            // Add the panel to the main content panel
+            jpnlMainContentPanel.add(managementPanels[i], Integer.toString(i));
 
-    public void setBorrowManagementPanel(BorrowManagementPanel borrowManagementPanel) {
-        this.borrowManagementPanel = borrowManagementPanel;
-        jpnlMainContentPanel.add(borrowManagementPanel, BORROW_MANAGEMENT_PANEL);
-    }
-
-    public void setMemberManagementPanel(MemberManagementPanel memberManagementPanel) {
-        this.memberManagementPanel = memberManagementPanel;
-        jpnlMainContentPanel.add(memberManagementPanel, MEMBER_MANAGEMENT_PANEL);
+            // Construct a sidebar button for this management panel
+            JButton jbtnBookCategory = new JButton(managementPanels[i].getButtonDescription());
+            jbtnBookCategory.addActionListener((event) -> {
+                CardLayout mainContentPanelLayout = (CardLayout) jpnlMainContentPanel.getLayout();
+                mainContentPanelLayout.show(jpnlMainContentPanel, Integer.toString(panelIndex));
+                managementPanels[panelIndex].firstPage();
+            });
+            jbtnBookCategory.setAlignmentY(0.0f);
+            jbtnBookCategory.setHorizontalAlignment(SwingConstants.LEFT);
+            jbtnBookCategory.setMinimumSize(new Dimension(200, 40));
+            jbtnBookCategory.setFont(new Font("Roboto", Font.PLAIN, 13));
+            jbtnBookCategory.setForeground(Color.WHITE);
+            jbtnBookCategory.setBackground(Color.BLACK);
+            jbtnBookCategory.setBorder(new EmptyBorder(0, 20, 0, 20));
+            jbtnBookCategory.setFocusPainted(false);
+            jbtnBookCategory.setBorderPainted(false);
+            jbtnBookCategory.setMaximumSize(new Dimension(32767, 40));
+            jpnlSidebar.add(jbtnBookCategory);
+        }
     }
 
 }

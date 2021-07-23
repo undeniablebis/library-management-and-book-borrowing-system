@@ -1,8 +1,9 @@
+# Eclipse
 /bin/
 .classpath
 .project
 /.settings/
-library-management-and-book-borrowing-system.iml
+
+# IntelliJ
+*.iml
 /.idea/
-/shelf/
-/workspace.xml
