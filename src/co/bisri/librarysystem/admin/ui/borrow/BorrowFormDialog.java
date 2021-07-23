@@ -72,7 +72,8 @@ public class BorrowFormDialog extends JDialog {
         jpnlContent.setBorder(new EmptyBorder(10, 10, 5, 10));
         getContentPane().add(jpnlContent, BorderLayout.CENTER);
         GridBagLayout gbl_jpnlContent = new GridBagLayout();
-        gbl_jpnlContent.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+        gbl_jpnlContent.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+        gbl_jpnlContent.columnWeights = new double[]{0.0, 1.0};
         jpnlContent.setLayout(gbl_jpnlContent);
         /* END OF jpnlContent */
 
@@ -82,8 +83,8 @@ public class BorrowFormDialog extends JDialog {
         jlblHeader.setFont(new Font("Segoe UI", Font.PLAIN, 24));
         GridBagConstraints gbc_jlblHeader = new GridBagConstraints();
         gbc_jlblHeader.anchor = GridBagConstraints.WEST;
-        gbc_jlblHeader.gridwidth = 4;
-        gbc_jlblHeader.insets = new Insets(0, 0, 5, 5);
+        gbc_jlblHeader.gridwidth = 2;
+        gbc_jlblHeader.insets = new Insets(0, 0, 5, 0);
         gbc_jlblHeader.gridx = 0;
         gbc_jlblHeader.gridy = 0;
         jpnlContent.add(jlblHeader, gbc_jlblHeader);
@@ -104,7 +105,7 @@ public class BorrowFormDialog extends JDialog {
         jcmbMember = new JComboBox<>();
         jcmbMember.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         GridBagConstraints gbc_jcmbMember = new GridBagConstraints();
-        gbc_jcmbMember.insets = new Insets(0, 0, 5, 5);
+        gbc_jcmbMember.insets = new Insets(0, 0, 5, 0);
         gbc_jcmbMember.fill = GridBagConstraints.HORIZONTAL;
         gbc_jcmbMember.gridx = 1;
         gbc_jcmbMember.gridy = 1;
@@ -127,7 +128,7 @@ public class BorrowFormDialog extends JDialog {
         jtxtfldBorrowedOn.setMargin(new Insets(5, 5, 5, 5));
         jtxtfldBorrowedOn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         GridBagConstraints gbc_jtxtfldBorrowedOn = new GridBagConstraints();
-        gbc_jtxtfldBorrowedOn.insets = new Insets(0, 0, 5, 5);
+        gbc_jtxtfldBorrowedOn.insets = new Insets(0, 0, 5, 0);
         gbc_jtxtfldBorrowedOn.fill = GridBagConstraints.HORIZONTAL;
         gbc_jtxtfldBorrowedOn.gridx = 1;
         gbc_jtxtfldBorrowedOn.gridy = 2;
@@ -151,7 +152,7 @@ public class BorrowFormDialog extends JDialog {
         jtxtfldTargetReturnDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         jtxtfldTargetReturnDate.setColumns(10);
         GridBagConstraints gbc_jtxtfldTargetReturnDate = new GridBagConstraints();
-        gbc_jtxtfldTargetReturnDate.insets = new Insets(0, 0, 5, 5);
+        gbc_jtxtfldTargetReturnDate.insets = new Insets(0, 0, 5, 0);
         gbc_jtxtfldTargetReturnDate.fill = GridBagConstraints.HORIZONTAL;
         gbc_jtxtfldTargetReturnDate.gridx = 1;
         gbc_jtxtfldTargetReturnDate.gridy = 3;
@@ -164,7 +165,7 @@ public class BorrowFormDialog extends JDialog {
         GridBagConstraints gbc_jlblItemsHeader = new GridBagConstraints();
         gbc_jlblItemsHeader.gridwidth = 2;
         gbc_jlblItemsHeader.anchor = GridBagConstraints.WEST;
-        gbc_jlblItemsHeader.insets = new Insets(0, 0, 5, 5);
+        gbc_jlblItemsHeader.insets = new Insets(0, 0, 5, 0);
         gbc_jlblItemsHeader.gridx = 0;
         gbc_jlblItemsHeader.gridy = 4;
         jpnlContent.add(jlblItemsHeader, gbc_jlblItemsHeader);
@@ -260,7 +261,7 @@ public class BorrowFormDialog extends JDialog {
         jtxtfldSearchIsbnTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         jtxtfldSearchIsbnTitle.setColumns(10);
         GridBagConstraints gbc_jtxtfldSearchIsbnTitle = new GridBagConstraints();
-        gbc_jtxtfldSearchIsbnTitle.insets = new Insets(0, 0, 5, 5);
+        gbc_jtxtfldSearchIsbnTitle.insets = new Insets(0, 0, 5, 0);
         gbc_jtxtfldSearchIsbnTitle.fill = GridBagConstraints.HORIZONTAL;
         gbc_jtxtfldSearchIsbnTitle.gridx = 1;
         gbc_jtxtfldSearchIsbnTitle.gridy = 5;
@@ -374,7 +375,7 @@ public class BorrowFormDialog extends JDialog {
         jbtnAddBookCopy.setEnabled(false);
         jbtnAddBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         GridBagConstraints gbc_jbtnAddBookCopy = new GridBagConstraints();
-        gbc_jbtnAddBookCopy.insets = new Insets(0, 0, 5, 5);
+        gbc_jbtnAddBookCopy.insets = new Insets(0, 0, 5, 0);
         gbc_jbtnAddBookCopy.anchor = GridBagConstraints.WEST;
         gbc_jbtnAddBookCopy.gridx = 1;
         gbc_jbtnAddBookCopy.gridy = 7;
@@ -385,7 +386,7 @@ public class BorrowFormDialog extends JDialog {
         jcmbBookCopy = new JComboBox<BookCopyEntity>();
         jcmbBookCopy.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         GridBagConstraints gbc_jcmbBookCopy = new GridBagConstraints();
-        gbc_jcmbBookCopy.insets = new Insets(0, 0, 5, 5);
+        gbc_jcmbBookCopy.insets = new Insets(0, 0, 5, 0);
         gbc_jcmbBookCopy.fill = GridBagConstraints.HORIZONTAL;
         gbc_jcmbBookCopy.gridx = 1;
         gbc_jcmbBookCopy.gridy = 6;
