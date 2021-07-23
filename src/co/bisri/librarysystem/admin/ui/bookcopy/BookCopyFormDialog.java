@@ -1,19 +1,40 @@
 package co.bisri.librarysystem.admin.ui.bookcopy;
 
-import co.bisri.librarysystem.admin.ui.FormOperation;
-import co.bisri.librarysystem.admin.ui.book.record.BookCategoryComboBoxItem;
-import co.bisri.librarysystem.admin.ui.bookcopy.record.BookComboBoxItem;
-import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopyEntity;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.sql.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
+import javax.swing.border.EmptyBorder;
+
+import co.bisri.librarysystem.admin.ui.FormOperation;
+import co.bisri.librarysystem.admin.ui.bookcopy.record.BookComboBoxItem;
+import co.bisri.librarysystem.admin.ui.bookcopy.record.BookCopyEntity;
 
 /**
  * Form Dialog for adding and updating copies

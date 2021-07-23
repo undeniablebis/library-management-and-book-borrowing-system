@@ -1,16 +1,23 @@
 package co.bisri.librarysystem.admin.ui.book;
 
-import co.bisri.librarysystem.admin.ui.ManagementPanel;
-import co.bisri.librarysystem.admin.ui.book.record.BookEntity;
-import co.bisri.librarysystem.admin.ui.book.record.BookTableRecord;
-import co.bisri.librarysystem.admin.ui.bookcategory.record.BookCategoryEntity;
-
-import javax.swing.*;
-import java.awt.*;
-import java.sql.*;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+
+import co.bisri.librarysystem.admin.ui.ManagementPanel;
+import co.bisri.librarysystem.admin.ui.book.record.BookEntity;
+import co.bisri.librarysystem.admin.ui.book.record.BookTableRecord;
 
 /**
  * Panel for managing books.
